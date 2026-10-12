@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
+import { useT } from '../lib/useT'
 
 interface ModalProps {
   title: ReactNode
@@ -12,6 +13,7 @@ interface ModalProps {
 }
 
 export function Modal({ title, icon, size = 'normal', onClose, footer, children, bodyless }: ModalProps) {
+  const t = useT()
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
@@ -29,7 +31,7 @@ export function Modal({ title, icon, size = 'normal', onClose, footer, children,
         <div className="modal-head">
           {icon}
           <h2>{title}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+          <button className="icon-btn" onClick={onClose} title={`${t('close')} esc`}>
             <X size={16} />
           </button>
         </div>

@@ -38,7 +38,7 @@ export interface SessionInput {
   clearSecret?: boolean
 }
 
-export type UiTheme = 'dark' | 'light' | 'system'
+export type UiTheme = 'dark' | 'light' | 'system' | 'vs' | 'retro'
 export type CursorStyle = 'block' | 'bar' | 'underline'
 export type Language = 'ru' | 'en'
 

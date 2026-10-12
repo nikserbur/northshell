@@ -152,11 +152,39 @@ await page.click('.titlebar-actions .icon-btn:nth-child(4)')
 await page.waitForSelector('.settings')
 await page.waitForTimeout(400)
 await shot('settings')
-await page.click('.settings .segmented >> nth=1 >> button:nth-child(2)')
+await page.click('.ui-theme-card:has-text("Светлая")')
 await page.click('.theme-chip:has-text("Paper")')
 await page.keyboard.press('Escape')
 await page.waitForTimeout(500)
 await shot('light')
+
+for (const [label, name] of [
+  ['Visual Studio', 'theme-vs'],
+  ['Windows 95', 'theme-retro']
+]) {
+  await page.click('.titlebar-actions .icon-btn:nth-child(4)')
+  await page.waitForSelector('.settings')
+  await page.click(`.ui-theme-card:has-text("${label}")`)
+  await page.waitForTimeout(300)
+  if (name === 'theme-retro') await shot(`${name}-settings`)
+  await page.keyboard.press('Escape')
+  await page.click('.sb-toggle')
+  await page.waitForTimeout(2500)
+  await shot(name)
+  await page.click('.sb-toggle')
+  if (name === 'theme-retro') {
+    await page.click('.tab.home')
+    await page.waitForTimeout(400)
+    await shot(`${name}-welcome`)
+    await page.click('.tab:has-text("prod-web-01")')
+  } else {
+    await page.dblclick('.file-row:has-text("docker-compose.yml")')
+    await page.waitForSelector('.editor-window .cm-content')
+    await page.waitForTimeout(500)
+    await shot(`${name}-editor`)
+    await page.click('.editor-head .icon-btn')
+  }
+}
 
 await app.close()
 console.log(`screenshots → ${out}`)

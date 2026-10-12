@@ -36,6 +36,12 @@ const app = await electron.launch({
   env: { ...process.env, XMT_E2E_DATA: dataDir }
 })
 page = await app.firstWindow()
+if (process.env.XMT_E2E_DEBUG) {
+  app.process().stdout?.on('data', (d) => process.stdout.write(`[main] ${d}`))
+  app.process().stderr?.on('data', (d) => process.stdout.write(`[main:err] ${d}`))
+  page.on('console', (m) => console.log(`[renderer:${m.type()}] ${m.text()}`))
+  page.on('crash', () => console.log('[renderer] CRASHED'))
+}
 const shot = (name) => page.screenshot({ path: join(shots, `${name}.png`) })
 async function waitForFile(path, expected, timeout = 10000) {
   const until = Date.now() + timeout
@@ -231,12 +237,30 @@ if (ssh.host && ssh.key && ssh.user) {
   })
 }
 
+await step('hover tooltip explains icon buttons', async () => {
+  await page.hover('.titlebar-actions .icon-btn:nth-child(4)')
+  await page.waitForSelector('.tooltip:has-text("Настройки")', { timeout: 3000 })
+  await page.mouse.move(700, 500)
+})
+
+await step('sessions sidebar can be resized by dragging', async () => {
+  const before = (await page.locator('.sidebar').boundingBox()).width
+  const handle = await page.locator('.sidebar .resize-handle').boundingBox()
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + 200)
+  await page.mouse.down()
+  await page.mouse.move(handle.x + 90, handle.y + 200, { steps: 6 })
+  await page.mouse.up()
+  const after = (await page.locator('.sidebar').boundingBox()).width
+  if (after - before < 60) throw new Error(`sidebar width ${before} → ${after}`)
+  await page.dblclick('.sidebar .resize-handle')
+})
+
 await step('settings dialog and light theme', async () => {
   await page.click('.titlebar-actions .icon-btn:nth-child(4)')
   await page.waitForSelector('.settings')
   await page.waitForTimeout(400)
   await shot('10-settings')
-  await page.click('.settings .segmented >> nth=1 >> button:nth-child(2)')
+  await page.click('.ui-theme-card:has-text("Светлая")')
   await page.click('.theme-chip:has-text("Paper")')
   await page.waitForTimeout(400)
   await page.keyboard.press('Escape')

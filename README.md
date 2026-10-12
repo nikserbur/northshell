@@ -52,9 +52,11 @@
 - Работает **без установки агентов**: статистика читается по тому же SSH-соединению из `/proc` (Linux) или `sysctl`/`vm_stat` (macOS).
 - Для локальной вкладки показывается нагрузка вашего Mac.
 
-### 🎨 Интерфейс
-- Тёмная, светлая и системная тема, 6 акцентных цветов, 6 цветовых схем терминала (Moda Night, Tokyo Night, Dracula, Nord, Solarized Dark, Paper).
-- Нативная полупрозрачность macOS (vibrancy), шрифты Inter и JetBrains Mono в комплекте.
+### 🎨 Интерфейс и темы
+- **5 тем оформления:** тёмная, светлая, системная, **Visual Studio** (как VS 2019 Dark: синяя активная вкладка, оранжевая строка состояния, подсветка VS) и олдскульная **Windows 95** (серые объёмные кнопки, синие заголовки окон, бирюзовый рабочий стол, графики как в Диспетчере задач).
+- 8 цветовых схем терминала: Moda Night, Tokyo Night, Dracula, Nord, Solarized Dark, Visual Studio Dark, MS-DOS, Paper; 6 акцентных цветов.
+- Подсказки при наведении на все кнопки (с горячими клавишами), **ширина панели сессий и SFTP меняется перетаскиванием** границы (двойной клик — по умолчанию).
+- Пиксельная иконка в стиле 90-х и лёгкие ретро-детали: «светодиодные» индикаторы, графики на сетке.
 - Палитра команд `⌘P`, уведомления, полностью **русский и английский** интерфейс.
 
 <details>
@@ -65,8 +67,12 @@
 | ![Welcome](docs/screenshots/welcome.png) | ![Editor](docs/screenshots/editor.png) |
 | **Поиск по серверу** | **Светлая тема** |
 | ![Search](docs/screenshots/sftp-search.png) | ![Light](docs/screenshots/light.png) |
-| **Настройки** | |
-| ![Settings](docs/screenshots/settings.png) | |
+| **Тема Visual Studio** | **Редактор в теме Visual Studio** |
+| ![Visual Studio](docs/screenshots/theme-vs.png) | ![VS editor](docs/screenshots/theme-vs-editor.png) |
+| **Тема Windows 95** | **Рабочий стол Windows 95** |
+| ![Windows 95](docs/screenshots/theme-retro.png) | ![Windows 95 start](docs/screenshots/theme-retro-welcome.png) |
+| **Настройки и выбор темы** | **Настройки (тёмная)** |
+| ![Theme picker](docs/screenshots/theme-retro-settings.png) | ![Settings](docs/screenshots/settings.png) |
 
 <sub>Скриншоты сняты на демо-проекте; имя хоста и пользователя заменены на демонстрационные.</sub>
 </details>
@@ -77,7 +83,7 @@
 
 | Файл | Платформа |
 |---|---|
-| [**download/Termora-1.0.0-arm64.dmg**](download/) | macOS 13+ · Apple Silicon (M1/M2/M3/M4) |
+| [**download/Termora-1.1.0-arm64.dmg**](download/) | macOS 13+ · Apple Silicon (M1/M2/M3/M4) |
 
 Тот же DMG прикреплён к [последнему релизу](../../releases/latest).
 

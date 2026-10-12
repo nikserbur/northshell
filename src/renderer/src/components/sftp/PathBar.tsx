@@ -1,5 +1,6 @@
 import { ChevronRight, PencilLine } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useT } from '../../lib/useT'
 
 interface PathBarProps {
   path: string
@@ -8,6 +9,7 @@ interface PathBarProps {
 
 /** Clickable breadcrumbs; click the pencil (or double-click) to type a path. */
 export function PathBar({ path, onNavigate }: PathBarProps) {
+  const t = useT()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(path)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -61,7 +63,7 @@ export function PathBar({ path, onNavigate }: PathBarProps) {
           </span>
         ))}
       </div>
-      <button className="icon-btn sm" onClick={() => setEditing(true)} aria-label="Edit path">
+      <button className="icon-btn sm" onClick={() => setEditing(true)} title={t('editPath')}>
         <PencilLine size={12} />
       </button>
     </div>

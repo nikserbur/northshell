@@ -9,7 +9,8 @@ export function formatBytes(value: number): string {
     unit++
   }
   if (unit === 0) return `${Math.round(n)} B`
-  return `${n >= 10 ? Math.round(n) : n.toFixed(1)} ${UNITS[unit]}`
+  const text = n >= 9.95 ? String(Math.round(n)) : n.toFixed(1)
+  return `${text} ${UNITS[unit]}`
 }
 
 export function formatRate(bytesPerSecond: number): string {

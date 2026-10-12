@@ -22,7 +22,14 @@ function toPath(values: number[], max: number, h: number): string {
     .join(' ')
 }
 
-export function Sparkline({ values, max, height = 46, color = 'var(--accent)', second, secondColor = 'var(--violet)' }: SparklineProps) {
+export function Sparkline({
+  values,
+  max,
+  height = 46,
+  color = 'var(--spark-1, var(--accent))',
+  second,
+  secondColor = 'var(--spark-2, var(--violet))'
+}: SparklineProps) {
   const id = useId().replace(/:/g, '')
   const top = Math.max(1, max ?? Math.max(...values, ...(second ?? []), 1) * 1.15)
   const line = toPath(values, top, height)

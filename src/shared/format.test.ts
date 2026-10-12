@@ -9,6 +9,7 @@ describe('formatBytes', () => {
     expect(formatBytes(10 * 1024 * 1024)).toBe('10 MB')
     expect(formatBytes(3.25 * 1024 ** 3)).toBe('3.3 GB')
     expect(formatBytes(2 * 1024 ** 4)).toBe('2.0 TB')
+    expect(formatBytes(9.97 * 1024 ** 3)).toBe('10 GB')
   })
 
   it('handles invalid input', () => {

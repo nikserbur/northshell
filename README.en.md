@@ -30,7 +30,7 @@
 
 **Server monitoring** — a MobaXterm-like status bar (CPU, RAM, disk, network ↓/↑, load, uptime, users) and a monitor drawer (`⇧⌘M`) with CPU/memory/network sparklines, all disks, swap, top processes and OS info. Agentless: stats are read over the same SSH connection from `/proc` (Linux) or `sysctl`/`vm_stat` (macOS).
 
-**UI** — dark, light and system themes, 6 accents, 6 terminal colour schemes, native macOS vibrancy, bundled Inter + JetBrains Mono, command palette (`⌘P`), Russian and English UI.
+**UI & themes** — five themes: dark, light, system, **Visual Studio** (VS 2019 Dark look: blue active tab, orange status bar, VS syntax colours) and an old-school **Windows 95** theme (silver bevels, navy title bars, teal desktop, Task-Manager graphs); 8 terminal colour schemes; hover tooltips with shortcuts on every button; **drag-to-resize** sessions and SFTP panels; a 90s pixel-art icon; command palette (`⌘P`); Russian and English UI.
 
 <details>
 <summary><b>📸 More screenshots</b></summary>
@@ -40,6 +40,8 @@
 | ![Welcome](docs/screenshots/welcome.png) | ![Editor](docs/screenshots/editor.png) |
 | **Server search** | **Light theme** |
 | ![Search](docs/screenshots/sftp-search.png) | ![Light](docs/screenshots/light.png) |
+| **Visual Studio theme** | **Windows 95 theme** |
+| ![Visual Studio](docs/screenshots/theme-vs.png) | ![Windows 95](docs/screenshots/theme-retro.png) |
 
 <sub>Screenshots use a demo project; host and user names are replaced with demo values.</sub>
 </details>
@@ -48,7 +50,7 @@
 
 | File | Platform |
 |---|---|
-| [**download/Termora-1.0.0-arm64.dmg**](download/) | macOS 13+ · Apple Silicon |
+| [**download/Termora-1.1.0-arm64.dmg**](download/) | macOS 13+ · Apple Silicon |
 
 The same DMG is attached to the [latest release](../../releases/latest).
 

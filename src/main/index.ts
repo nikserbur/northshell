@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, nativeTheme, safeStorage, session, shell } from 'electron'
 import { APP_NAME } from '@shared/brand'
 import { IPC } from '@shared/ipc'
-import { LOCAL_MONITOR_ID } from '@shared/types'
+import { LOCAL_MONITOR_ID, type UiTheme } from '@shared/types'
 import { registerIpc } from './ipc'
 import { buildMenu } from './menu'
 import { LocalMonitor } from './monitor/localMonitor'
@@ -43,7 +43,7 @@ function createWindow(settings: SettingsStore): BrowserWindow {
       spellcheck: false
     }
   })
-  nativeTheme.themeSource = settings.get().uiTheme
+  nativeTheme.themeSource = nativeSource(settings.get().uiTheme)
   win.once('ready-to-show', () => win.show())
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -60,6 +60,12 @@ function createWindow(settings: SettingsStore): BrowserWindow {
 }
 
 const ALLOWED_PERMISSIONS = new Set(['clipboard-read', 'clipboard-sanitized-write'])
+
+/** Electron only knows light/dark/system: Visual Studio is dark, Windows 95 is light. */
+function nativeSource(theme: UiTheme): 'light' | 'dark' | 'system' {
+  if (theme === 'vs') return 'dark'
+  return theme === 'retro' ? 'light' : theme
+}
 
 void app.whenReady().then(() => {
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) =>
@@ -114,7 +120,7 @@ void app.whenReady().then(() => {
     prompts,
     setLocalMonitor,
     onSettingsChanged: () => {
-      nativeTheme.themeSource = settings.get().uiTheme
+      nativeTheme.themeSource = nativeSource(settings.get().uiTheme)
       if (localMonitor) setLocalMonitor(true)
     }
   })

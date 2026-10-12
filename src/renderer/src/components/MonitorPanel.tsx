@@ -97,7 +97,7 @@ export function MonitorPanel() {
           {formatBytes(s.memUsed)}
           <small>/ {formatBytes(s.memTotal)}</small>
         </div>
-        <Sparkline values={history.mem} max={100} height={42} color="var(--violet)" />
+        <Sparkline values={history.mem} max={100} height={42} color="var(--spark-2, var(--violet))" />
         {s.swapTotal > 0 && (
           <Bar label={t('swap')} value={`${formatBytes(s.swapUsed)} / ${formatBytes(s.swapTotal)}`} pct={swapPct} />
         )}
@@ -112,7 +112,7 @@ export function MonitorPanel() {
           <span className="rx">↓ {formatRate(s.netRx)}</span>
           <span className="tx">↑ {formatRate(s.netTx)}</span>
         </div>
-        <Sparkline values={history.rx} second={history.tx} height={84} color="var(--info)" />
+        <Sparkline values={history.rx} second={history.tx} height={84} color="var(--spark-3, var(--info))" />
       </div>
 
       <div className="mon-card" style={{ overflowY: 'auto' }}>

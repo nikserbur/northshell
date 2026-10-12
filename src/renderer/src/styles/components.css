@@ -642,3 +642,46 @@ select.input {
 .palette-item > svg {
   color: var(--text-1);
 }
+
+/* ───────────── Tooltip ───────────── */
+.tooltip {
+  position: fixed;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+  padding: 5px 8px;
+  border-radius: var(--radius-s);
+  background: var(--tooltip-bg, #0d1016);
+  color: var(--tooltip-fg, #eef1f6);
+  box-shadow:
+    0 0 0 1px var(--line-strong),
+    0 8px 20px -8px rgba(0, 0, 0, 0.6);
+  font-size: 12px;
+  line-height: 1.3;
+  pointer-events: none;
+  white-space: pre-line;
+  animation: tip-in 120ms var(--ease);
+}
+
+.tooltip.below {
+  transform: translateX(-50%);
+}
+
+.tooltip.above {
+  transform: translate(-50%, -100%);
+}
+
+.tooltip .kbd {
+  height: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+}

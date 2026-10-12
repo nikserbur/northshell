@@ -22,6 +22,37 @@ const SECTIONS: [Section, I18nKey, ReactNode][] = [
   ['about', 'about', <Info size={15} key="i" />]
 ]
 
+interface ThemePreview {
+  top: string
+  side: string
+  body: string
+  accent: string
+  status: string
+}
+
+const UI_THEMES: { id: UiTheme; label: I18nKey; preview: ThemePreview }[] = [
+  { id: 'dark', label: 'themeDark', preview: { top: '#0d1016', side: '#141821', body: '#0b0e14', accent: '#5eead4', status: '#0d1016' } },
+  { id: 'light', label: 'themeLight', preview: { top: '#ecebe6', side: '#f3f2ee', body: '#ffffff', accent: '#0d9488', status: '#ecebe6' } },
+  {
+    id: 'system',
+    label: 'themeSystem',
+    preview: { top: '#3a3d45', side: '#141821', body: 'linear-gradient(90deg, #0b0e14 50%, #fbfaf7 50%)', accent: '#5eead4', status: '#3a3d45' }
+  },
+  {
+    id: 'vs',
+    label: 'themeVs',
+    preview: { top: '#2d2d30', side: '#252526', body: '#1e1e1e', accent: '#007acc', status: '#ca5100' }
+  },
+  {
+    id: 'retro',
+    label: 'themeRetro',
+    preview: { top: 'linear-gradient(90deg, #000080, #1084d0)', side: '#c0c0c0', body: '#008080', accent: '#c0c0c0', status: '#c0c0c0' }
+  }
+]
+
+/** Terminal colour scheme that goes with each branded UI theme. */
+const BRANDED_TERMINAL: Partial<Record<UiTheme, string>> = { vs: 'visual-studio', retro: 'dos' }
+
 const FONTS = ['JetBrains Mono', 'SF Mono', 'Menlo', 'Monaco', 'Fira Code', 'Cascadia Code']
 
 function NumberField({ label, value, min, max, step = 1, onCommit }: { label: string; value: number; min: number; max: number; step?: number; onCommit: (v: number) => void }) {
@@ -101,38 +132,45 @@ export function SettingsDialog() {
     if (dir) update({ downloadDir: dir })
   }
 
+  const pickTheme = (theme: UiTheme): void => {
+    const branded = BRANDED_TERMINAL[theme]
+    const leavingBranded = Object.values(BRANDED_TERMINAL).includes(settings.terminalTheme)
+    const terminalTheme = branded ?? (leavingBranded ? (theme === 'light' ? 'paper' : 'moda-night') : settings.terminalTheme)
+    update({ uiTheme: theme, terminalTheme })
+  }
+  const fixedPalette = settings.uiTheme === 'vs' || settings.uiTheme === 'retro'
+
   const appearance = (
     <>
-      <div className="grid-2">
-        <div className="field">
-          <span className="field-label">{t('language')}</span>
-          <div className="segmented">
-            {(['ru', 'en'] as Language[]).map((l) => (
-              <button key={l} className={settings.language === l ? 'on' : ''} onClick={() => update({ language: l })}>
-                {l === 'ru' ? 'Русский' : 'English'}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="field">
-          <span className="field-label">{t('theme')}</span>
-          <div className="segmented">
-            {(
-              [
-                ['dark', t('themeDark')],
-                ['light', t('themeLight')],
-                ['system', t('themeSystem')]
-              ] as [UiTheme, string][]
-            ).map(([v, label]) => (
-              <button key={v} className={settings.uiTheme === v ? 'on' : ''} onClick={() => update({ uiTheme: v })}>
-                {label}
-              </button>
-            ))}
-          </div>
+      <div className="field">
+        <span className="field-label">{t('language')}</span>
+        <div className="segmented">
+          {(['ru', 'en'] as Language[]).map((l) => (
+            <button key={l} className={settings.language === l ? 'on' : ''} onClick={() => update({ language: l })}>
+              {l === 'ru' ? 'Русский' : 'English'}
+            </button>
+          ))}
         </div>
       </div>
       <div className="field">
+        <span className="field-label">{t('theme')}</span>
+        <div className="ui-theme-grid">
+          {UI_THEMES.map(({ id, label, preview }) => (
+            <button key={id} className={`ui-theme-card ${settings.uiTheme === id ? 'on' : ''}`} onClick={() => pickTheme(id)}>
+              <span className="tc-preview" style={{ background: preview.body }}>
+                <i className="tc-top" style={{ background: preview.top }} />
+                <i className="tc-side" style={{ background: preview.side }} />
+                <i className="tc-accent" style={{ background: preview.accent }} />
+                <i className="tc-status" style={{ background: preview.status }} />
+              </span>
+              {t(label)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="field" style={fixedPalette ? { opacity: 0.45, pointerEvents: 'none' } : undefined}>
         <span className="field-label">{t('accent')}</span>
+        {fixedPalette && <span className="hint">{t('themeFixedAccent')}</span>}
         <div className="swatches">
           {ACCENTS.map((c) => (
             <button

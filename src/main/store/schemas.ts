@@ -21,7 +21,7 @@ export const sessionInputSchema = z.object({
 
 export const settingsShape = z.object({
     language: z.enum(['ru', 'en']),
-    uiTheme: z.enum(['dark', 'light', 'system']),
+    uiTheme: z.enum(['dark', 'light', 'system', 'vs', 'retro']),
     accent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     terminalTheme: z.string().max(40),
     fontFamily: z.string().max(80),

@@ -79,7 +79,7 @@ function DisconnectedOverlay({ tab }: { tab: Tab }) {
       <button className="btn sm primary" onClick={() => reconnectTab(tab.id)}>
         <RotateCw size={13} /> {t('reconnect')}
       </button>
-      <button className="btn sm ghost" onClick={() => closeTab(tab.id)}>
+      <button className="btn sm ghost" onClick={() => closeTab(tab.id)} title={`${t('closeTab')} ⌘W`}>
         <X size={13} />
       </button>
     </div>
@@ -125,13 +125,13 @@ function FindBar({ tabId }: { tabId: string }) {
           }
         }}
       />
-      <button className="icon-btn sm" onClick={() => query && search?.findPrevious(query, opts)}>
+      <button className="icon-btn sm" onClick={() => query && search?.findPrevious(query, opts)} title={`${t('findPrev')} ⇧↩`}>
         <ArrowUp size={13} />
       </button>
-      <button className="icon-btn sm" onClick={() => query && search?.findNext(query, opts)}>
+      <button className="icon-btn sm" onClick={() => query && search?.findNext(query, opts)} title={`${t('findNext')} ↩`}>
         <ArrowDown size={13} />
       </button>
-      <button className="icon-btn sm" onClick={close}>
+      <button className="icon-btn sm" onClick={close} title={`${t('close')} esc`}>
         <X size={13} />
       </button>
     </div>

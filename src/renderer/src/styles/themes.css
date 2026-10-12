@@ -1,0 +1,652 @@
+/* ════════════════════════════════════════════════════════════════════
+   Theme: Visual Studio (Windows, VS 2019 Dark)
+   Graphite frame, blue active document tab with a blue rule under the tab
+   strip, dotted tool-window grips, orange status bar and VS Dark syntax.
+   ════════════════════════════════════════════════════════════════════ */
+:root[data-theme='vs'] {
+  color-scheme: dark;
+  --accent: #007acc;
+  --accent-ink: #ffffff;
+  --accent-fg: #3794ff;
+  --accent-soft: rgba(0, 122, 204, 0.32);
+  --accent-line: #007acc;
+  --accent-glow: transparent;
+
+  --chrome: #252526;
+  --chrome-solid: #2d2d30;
+  --surface-0: #1e1e1e;
+  --surface-1: #252526;
+  --surface-2: #333337;
+  --surface-3: #3f3f46;
+  --hover: rgba(255, 255, 255, 0.07);
+  --press: rgba(255, 255, 255, 0.12);
+  --overlay: rgba(0, 0, 0, 0.5);
+  --line: #3f3f46;
+  --line-strong: #555559;
+  --text-0: #f1f1f1;
+  --text-1: #d0d0d0;
+  --text-2: #999999;
+  --text-3: #6d6d6d;
+  --ok: #89d185;
+  --warn: #cca700;
+  --danger: #f48771;
+  --info: #3794ff;
+  --violet: #c586c0;
+
+  --radius-xs: 0;
+  --radius-s: 0;
+  --radius-m: 2px;
+  --radius-l: 2px;
+  --radius-xl: 3px;
+  --shadow-pop: 0 0 0 1px #3f3f46, 0 10px 30px rgba(0, 0, 0, 0.6);
+  --hard-shadow: transparent;
+  --grid-line: rgba(255, 255, 255, 0.06);
+  --tooltip-bg: #2d2d30;
+  --tooltip-fg: #f1f1f1;
+  --grip: radial-gradient(#55555a 1px, transparent 1.2px) 0 0 / 4px 4px;
+
+  --syn-keyword: #569cd6;
+  --syn-string: #d69d85;
+  --syn-number: #b5cea8;
+  --syn-comment: #57a64a;
+  --syn-function: #dcdcaa;
+  --syn-type: #4ec9b0;
+  --syn-property: #9cdcfe;
+  --syn-tag: #569cd6;
+}
+
+/* Document tabs: blue active tab sitting on a blue rule */
+:root[data-theme='vs'] .titlebar {
+  background: #2d2d30;
+  border-bottom: 2px solid #007acc;
+}
+
+:root[data-theme='vs'] .tab {
+  height: 26px;
+  align-self: flex-end;
+  border-radius: 0;
+}
+
+:root[data-theme='vs'] .tab.active {
+  background: #007acc;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:root[data-theme='vs'] .tab.active::before {
+  display: none;
+}
+
+:root[data-theme='vs'] .tab.active .tab-close,
+:root[data-theme='vs'] .tab.active svg {
+  color: #ffffff;
+}
+
+/* Tool windows: flat panels with the dotted VS grip after the caption */
+:root[data-theme='vs'] .sidebar {
+  background: #252526;
+}
+
+:root[data-theme='vs'] .sftp-head .title,
+:root[data-theme='vs'] .mon-title,
+:root[data-theme='vs'] .transfers-head {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-1);
+}
+
+:root[data-theme='vs'] .sftp-head .title::after,
+:root[data-theme='vs'] .mon-title::after,
+:root[data-theme='vs'] .brand::after {
+  content: '';
+  flex: 1;
+  height: 5px;
+  margin-left: 6px;
+  background: var(--grip);
+}
+
+:root[data-theme='vs'] .sftp-head .title {
+  flex: 1;
+  margin-right: 6px;
+}
+
+:root[data-theme='vs'] .welcome .section-title::after {
+  height: 5px;
+  background: var(--grip);
+}
+
+:root[data-theme='vs'] .sidebar-section {
+  color: var(--text-1);
+}
+
+:root[data-theme='vs'] .session-row.is-open::after {
+  background: #007acc;
+}
+
+/* Controls */
+:root[data-theme='vs'] .btn {
+  background: #3f3f46;
+  box-shadow: inset 0 0 0 1px #555559;
+}
+
+:root[data-theme='vs'] .btn:hover {
+  background: #505057;
+}
+
+:root[data-theme='vs'] .btn.primary {
+  background: #007acc;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:root[data-theme='vs'] .btn.primary:hover {
+  background: #1c97ea;
+}
+
+:root[data-theme='vs'] .btn.primary:active {
+  transform: none;
+}
+
+:root[data-theme='vs'] .input:focus,
+:root[data-theme='vs'] .sftp-search:focus-within,
+:root[data-theme='vs'] .quick:focus-within {
+  box-shadow: inset 0 0 0 1px #007acc;
+}
+
+:root[data-theme='vs'] .monogram {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--mono-color) 28%, transparent);
+}
+
+/* Start page */
+:root[data-theme='vs'] .welcome {
+  background: #1e1e1e;
+}
+
+:root[data-theme='vs'] .welcome h1 span {
+  background: none;
+  color: #3794ff;
+}
+
+:root[data-theme='vs'] .welcome .card:hover {
+  transform: none;
+  background: #2d2d30;
+  box-shadow: inset 0 0 0 1px #007acc;
+}
+
+/* Orange status bar */
+:root[data-theme='vs'] .statusbar {
+  --chrome-solid: #ca5100;
+  --text-0: #ffffff;
+  --text-1: #fff1e6;
+  --text-2: #ffd9bf;
+  --line: rgba(255, 255, 255, 0.22);
+  --line-strong: rgba(255, 255, 255, 0.3);
+  --hover: rgba(255, 255, 255, 0.14);
+  background: #ca5100;
+  border-top-color: #ca5100;
+}
+
+:root[data-theme='vs'] .statusbar .lvl-ok {
+  --meter-color: #ffffff;
+}
+
+:root[data-theme='vs'] .statusbar .lvl-warn {
+  --meter-color: #ffe08a;
+}
+
+:root[data-theme='vs'] .statusbar .lvl-crit {
+  --meter-color: #ffd0d0;
+}
+
+:root[data-theme='vs'] .statusbar .rx,
+:root[data-theme='vs'] .statusbar .tx,
+:root[data-theme='vs'] .statusbar svg {
+  color: #ffffff;
+}
+
+/* Code editor */
+:root[data-theme='vs'] .editor-head {
+  background: #2d2d30;
+  border-bottom: 2px solid #007acc;
+}
+
+:root[data-theme='vs'] .editor-name {
+  padding: 4px 10px;
+  background: #007acc;
+  color: #ffffff;
+}
+
+:root[data-theme='vs'] .editor-body .cm-gutters {
+  color: #2b91af;
+  background: #1e1e1e;
+}
+
+:root[data-theme='vs'] .editor-body .cm-activeLine {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px #464646;
+}
+
+:root[data-theme='vs'] .editor-body .cm-activeLineGutter {
+  color: #c6c6c6;
+}
+
+:root[data-theme='vs'] .editor-body .cm-selectionBackground,
+:root[data-theme='vs'] .editor-body .cm-focused .cm-selectionBackground {
+  background: #264f78 !important;
+}
+
+/* VS scrollbars: square thumbs */
+:root[data-theme='vs'] ::-webkit-scrollbar-thumb {
+  background: #4e4e52;
+  border-radius: 0;
+  border-width: 3px;
+}
+
+:root[data-theme='vs'] ::-webkit-scrollbar-thumb:hover {
+  background-color: #9e9e9e;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Theme: Windows 95 — silver bevels, navy title bars, teal desktop,
+   Tahoma, and an MS-DOS terminal.
+   ════════════════════════════════════════════════════════════════════ */
+:root[data-theme='retro'] {
+  color-scheme: light;
+  --font-ui: Tahoma, 'Segoe UI', Geneva, Verdana, sans-serif;
+  --accent: #000080;
+  --accent-ink: #ffffff;
+  --accent-fg: #000080;
+  --accent-soft: rgba(0, 0, 128, 0.12);
+  --accent-line: #000080;
+  --accent-glow: transparent;
+
+  --chrome: #c0c0c0;
+  --chrome-solid: #c0c0c0;
+  --surface-0: #c0c0c0;
+  --surface-1: #c0c0c0;
+  --surface-2: #ffffff;
+  --surface-3: #dfdfdf;
+  --hover: rgba(0, 0, 128, 0.08);
+  --press: rgba(0, 0, 0, 0.12);
+  --overlay: rgba(0, 0, 0, 0.2);
+  --line: #808080;
+  --line-strong: #404040;
+  --text-0: #000000;
+  --text-1: #1a1a1a;
+  --text-2: #404040;
+  --text-3: #808080;
+  --ok: #008000;
+  --warn: #808000;
+  --danger: #c00000;
+  --info: #000080;
+  --violet: #800080;
+
+  --radius-xs: 0;
+  --radius-s: 0;
+  --radius-m: 0;
+  --radius-l: 0;
+  --radius-xl: 0;
+  --raised: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+  --sunken: inset 1px 1px #808080, inset -1px -1px #ffffff, inset 2px 2px #0a0a0a, inset -2px -2px #dfdfdf;
+  --shadow-pop: var(--raised), 3px 3px 0 rgba(0, 0, 0, 0.35);
+  --shadow-soft: none;
+  --hard-shadow: rgba(0, 0, 0, 0.55);
+  --grid-line: #008000;
+  --tooltip-bg: #ffffe1;
+  --tooltip-fg: #000000;
+  --spark-1: #00ff00;
+  --spark-2: #ffff00;
+  --spark-3: #00ffff;
+
+  --syn-keyword: #000080;
+  --syn-string: #800000;
+  --syn-number: #008080;
+  --syn-comment: #808080;
+  --syn-function: #000000;
+  --syn-type: #008080;
+  --syn-property: #800080;
+  --syn-tag: #000080;
+}
+
+:root[data-theme='retro'] body {
+  font-size: 12px;
+}
+
+/* Buttons */
+:root[data-theme='retro'] .btn {
+  background: #c0c0c0;
+  color: #000;
+  box-shadow: var(--raised);
+  font-weight: 400;
+}
+
+:root[data-theme='retro'] .btn:hover {
+  background: #c0c0c0;
+}
+
+:root[data-theme='retro'] .btn:active {
+  box-shadow: var(--sunken);
+  transform: none;
+}
+
+:root[data-theme='retro'] .btn.primary {
+  font-weight: 700;
+  box-shadow: 0 0 0 1px #000, var(--raised);
+}
+
+:root[data-theme='retro'] .btn.danger {
+  color: #c00000;
+}
+
+:root[data-theme='retro'] .btn.ghost {
+  box-shadow: none;
+  background: transparent;
+}
+
+:root[data-theme='retro'] .btn.ghost:hover {
+  box-shadow: var(--raised);
+}
+
+:root[data-theme='retro'] .icon-btn:hover {
+  background: transparent;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #ffffff;
+}
+
+:root[data-theme='retro'] .icon-btn:active,
+:root[data-theme='retro'] .icon-btn.on {
+  color: #000;
+  background: repeating-conic-gradient(#c0c0c0 0 25%, #ffffff 0 50%) 0 0 / 2px 2px;
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #ffffff;
+}
+
+/* Text fields: sunken white wells */
+:root[data-theme='retro'] .input,
+:root[data-theme='retro'] .input:focus,
+:root[data-theme='retro'] .quick,
+:root[data-theme='retro'] .quick:focus-within,
+:root[data-theme='retro'] .sftp-search,
+:root[data-theme='retro'] .sftp-search:focus-within,
+:root[data-theme='retro'] .sftp-path,
+:root[data-theme='retro'] .callout,
+:root[data-theme='retro'] .fingerprint,
+:root[data-theme='retro'] .sidebar-list,
+:root[data-theme='retro'] .sftp-list {
+  background: #ffffff;
+  box-shadow: var(--sunken);
+}
+
+:root[data-theme='retro'] .sidebar-list {
+  margin: 0 10px;
+}
+
+:root[data-theme='retro'] .sftp-list {
+  margin: 0 8px;
+}
+
+/* Windows: raised frames with navy title bars */
+:root[data-theme='retro'] .modal,
+:root[data-theme='retro'] .palette,
+:root[data-theme='retro'] .ctx-menu,
+:root[data-theme='retro'] .toast,
+:root[data-theme='retro'] .find-bar,
+:root[data-theme='retro'] .term-overlay,
+:root[data-theme='retro'] .editor-window {
+  background: #c0c0c0;
+  box-shadow: var(--shadow-pop);
+  padding: 3px;
+}
+
+:root[data-theme='retro'] .modal-head,
+:root[data-theme='retro'] .editor-head {
+  height: auto;
+  padding: 3px 3px 3px 8px;
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #ffffff;
+  border-bottom: 0;
+}
+
+:root[data-theme='retro'] .modal-head h2 {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+:root[data-theme='retro'] .modal-head svg,
+:root[data-theme='retro'] .editor-head > svg,
+:root[data-theme='retro'] .editor-path {
+  color: #ffffff !important;
+}
+
+:root[data-theme='retro'] .modal-head .icon-btn,
+:root[data-theme='retro'] .editor-head .icon-btn {
+  width: 20px;
+  height: 18px;
+  background: #c0c0c0;
+  color: #000;
+  box-shadow: var(--raised);
+}
+
+:root[data-theme='retro'] .modal-foot {
+  border-top: 0;
+  background: transparent;
+}
+
+:root[data-theme='retro'] .editor-foot,
+:root[data-theme='retro'] .sftp-status {
+  background: #c0c0c0;
+  border-top: 0;
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #ffffff;
+  margin: 3px;
+}
+
+:root[data-theme='retro'] .editor-body .cm-editor,
+:root[data-theme='retro'] .editor-body .cm-gutters {
+  background: #ffffff;
+}
+
+/* Selection: classic navy highlight */
+:root[data-theme='retro'] .file-row.sel,
+:root[data-theme='retro'] .palette-item.sel,
+:root[data-theme='retro'] .settings-nav button.on,
+:root[data-theme='retro'] .search-banner {
+  background: #000080;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:root[data-theme='retro'] .file-row.sel *,
+:root[data-theme='retro'] .palette-item.sel *,
+:root[data-theme='retro'] .settings-nav button.on svg {
+  color: #ffffff !important;
+}
+
+/* Tabs and title strip */
+:root[data-theme='retro'] .titlebar,
+:root[data-theme='retro'] .sidebar {
+  background: #c0c0c0;
+}
+
+:root[data-theme='retro'] .tab.active {
+  background: #c0c0c0;
+  box-shadow: inset 1px 1px #ffffff, inset -1px 0 #0a0a0a, inset -2px 0 #808080;
+}
+
+:root[data-theme='retro'] .tab.active::before {
+  display: none;
+}
+
+/* Status bar: sunken panels */
+:root[data-theme='retro'] .statusbar {
+  border-top: 0;
+  box-shadow: inset 0 1px #ffffff;
+}
+
+:root[data-theme='retro'] .sb-seg {
+  margin: 3px 2px;
+  padding: 0 8px;
+  border-right: 0;
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #ffffff;
+}
+
+:root[data-theme='retro'] .sb-toggle {
+  margin: 3px;
+  border-left: 0;
+  box-shadow: var(--raised);
+}
+
+:root[data-theme='retro'] .meter,
+:root[data-theme='retro'] .bar-line .track {
+  background: #ffffff;
+  box-shadow: inset 1px 1px #808080;
+}
+
+:root[data-theme='retro'] .meter::after,
+:root[data-theme='retro'] .bar-line .track::after {
+  background: repeating-linear-gradient(90deg, transparent 0 5px, #ffffff 5px 7px);
+}
+
+:root[data-theme='retro'] .lvl-warn {
+  --meter-color: #808000;
+}
+
+:root[data-theme='retro'] .lvl-crit {
+  --meter-color: #c00000;
+}
+
+/* Task Manager graphs: black screen, green grid */
+:root[data-theme='retro'] .spark {
+  background-color: #000000;
+  box-shadow: var(--sunken);
+}
+
+:root[data-theme='retro'] .mon-card {
+  background: #c0c0c0;
+}
+
+/* Start page: the teal desktop */
+:root[data-theme='retro'] .welcome {
+  background: #008080;
+  color: #ffffff;
+  --text-0: #ffffff;
+  --text-1: #e0ffff;
+  --text-2: #c8f0f0;
+  --line: rgba(255, 255, 255, 0.35);
+}
+
+:root[data-theme='retro'] .welcome h1 span {
+  background: none;
+  color: #ffff00;
+}
+
+:root[data-theme='retro'] .welcome .card,
+:root[data-theme='retro'] .welcome .btn {
+  --text-0: #000000;
+  --text-2: #404040;
+  --text-3: #606060;
+  background: #c0c0c0;
+  color: #000;
+  box-shadow: var(--raised);
+}
+
+:root[data-theme='retro'] .welcome .card:hover {
+  transform: none;
+  box-shadow: var(--raised), 3px 3px 0 rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme='retro'] .welcome .kbd,
+:root[data-theme='retro'] .kbd {
+  background: #c0c0c0;
+  color: #000;
+  box-shadow: var(--raised);
+}
+
+:root[data-theme='retro'] .quick .prompt {
+  color: #000080;
+}
+
+/* Controls */
+:root[data-theme='retro'] .segmented {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  gap: 4px;
+}
+
+:root[data-theme='retro'] .segmented button {
+  color: #000;
+  background: #c0c0c0;
+  box-shadow: var(--raised);
+}
+
+:root[data-theme='retro'] .segmented button.on {
+  background: repeating-conic-gradient(#c0c0c0 0 25%, #ffffff 0 50%) 0 0 / 2px 2px;
+  box-shadow: var(--sunken);
+}
+
+:root[data-theme='retro'] .switch {
+  background: #ffffff;
+  box-shadow: var(--sunken);
+}
+
+:root[data-theme='retro'] .switch::after {
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  background: #c0c0c0;
+  box-shadow: var(--raised);
+}
+
+:root[data-theme='retro'] .switch.on {
+  background: #000080;
+}
+
+:root[data-theme='retro'] .switch.on::after {
+  transform: translateX(11px);
+}
+
+:root[data-theme='retro'] .swatch,
+:root[data-theme='retro'] .monogram {
+  border-radius: 0;
+}
+
+:root[data-theme='retro'] .tooltip {
+  box-shadow: 0 0 0 1px #000000;
+}
+
+:root[data-theme='retro'] .tooltip .kbd {
+  box-shadow: none;
+  background: transparent;
+}
+
+/* Classic chunky scrollbars */
+:root[data-theme='retro'] ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: repeating-conic-gradient(#c0c0c0 0 25%, #ffffff 0 50%) 0 0 / 2px 2px;
+}
+
+:root[data-theme='retro'] ::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--raised);
+}
+
+:root[data-theme='retro'] .monogram {
+  color: #000000;
+  background: var(--mono-color);
+  box-shadow: var(--raised);
+}
+
+/* Keep the terminal's own thin scrollbar on the black DOS screen */
+:root[data-theme='retro'] .xterm-viewport::-webkit-scrollbar {
+  width: 10px;
+  background: transparent;
+}
+
+:root[data-theme='retro'] .xterm-viewport::-webkit-scrollbar-thumb {
+  background: #555555;
+  box-shadow: none;
+}

@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react'
 import { useMemo, useState, type MouseEvent } from 'react'
+import { usePanelWidth } from '../hooks/usePanelWidth'
 import type { SessionConfig } from '@shared/types'
 import { BRAND_HEAD, BRAND_TAIL } from '@shared/brand'
 import iconMark from '../assets/icon-32.png'
@@ -38,6 +39,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menu, setMenu] = useState<MenuState | null>(null)
+  const panel = usePanelWidth('xmt.sidebar.width', 264, 200, 460)
 
   const openIds = useMemo(() => new Set(tabs.map((tab) => tab.sessionId).filter(Boolean)), [tabs])
 
@@ -105,7 +107,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" style={{ width: panel.width }}>
       <div className="sidebar-top drag">
         <button className="icon-btn no-drag" onClick={onCollapse} title={t('toggleSidebar')}>
           <PanelLeftClose size={16} />
@@ -182,7 +184,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
                       <button className="icon-btn sm" onClick={() => openSession(s)} title={t('connect')}>
                         <Play size={13} />
                       </button>
-                      <button className="icon-btn sm" onClick={(e) => showMenu(e, s)} title="…">
+                      <button className="icon-btn sm" onClick={(e) => showMenu(e, s)} title={t('more')}>
                         <MoreHorizontal size={14} />
                       </button>
                     </div>
@@ -203,6 +205,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
       </div>
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.session)} onClose={() => setMenu(null)} />}
+      <div className="resize-handle" onMouseDown={panel.startResize} onDoubleClick={panel.reset} title={t('resizeHint')} />
     </aside>
   )
 }

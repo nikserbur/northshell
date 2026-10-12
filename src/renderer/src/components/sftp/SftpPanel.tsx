@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type
 import { filterEntries, sortEntries, type SortDir, type SortKey } from '@shared/fileSort'
 import { formatBytes } from '@shared/format'
 import type { SearchHit, SftpEntry } from '@shared/types'
+import { usePanelWidth } from '../../hooks/usePanelWidth'
 import { useT } from '../../lib/useT'
 import { errorMessage } from '../../lib/util'
 import { useApp, type Tab } from '../../store/appStore'
@@ -38,11 +39,10 @@ const PREFS_KEY = 'xmt.sftp.prefs'
 interface Prefs {
   sortKey: SortKey
   sortDir: SortDir
-  width: number
 }
 
 function loadPrefs(): Prefs {
-  const fallback: Prefs = { sortKey: 'name', sortDir: 'asc', width: 312 }
+  const fallback: Prefs = { sortKey: 'name', sortDir: 'asc' }
   try {
     return { ...fallback, ...(JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') as Partial<Prefs>) }
   } catch {
@@ -76,6 +76,7 @@ export function SftpPanel({ tab }: { tab: Tab }) {
   const [hits, setHits] = useState<{ root: string; query: string; list: SearchHit[]; truncated: boolean } | null>(null)
   const [searching, setSearching] = useState(false)
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs)
+  const panel = usePanelWidth('xmt.sftp.width', 312, 240, 720)
   const [dragOver, setDragOver] = useState(false)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const connected = tab.status === 'connected'
@@ -204,21 +205,6 @@ export function SftpPanel({ tab }: { tab: Tab }) {
     actions.upload([...e.dataTransfer.files].map((f) => window.xmt.app.pathForFile(f)).filter(Boolean))
   }
 
-  const startResize = (e: MouseEvent): void => {
-    e.preventDefault()
-    const startX = e.clientX
-    const startW = prefs.width
-    const move = (ev: globalThis.MouseEvent): void =>
-      setPrefs((p) => ({ ...p, width: Math.min(720, Math.max(240, startW + ev.clientX - startX)) }))
-    const up = (): void => {
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-      setPrefs((p) => (savePrefs(p), p))
-    }
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
-  }
-
   const single = selectedEntries.length === 1 ? selectedEntries[0] : null
   const menuItems: MenuEntry[] = [
     ...(single && !single.isDir
@@ -252,7 +238,7 @@ export function SftpPanel({ tab }: { tab: Tab }) {
 
   if (!connected) {
     return (
-      <aside className="sftp" style={{ width: prefs.width }}>
+      <aside className="sftp" style={{ width: panel.width }}>
         <div className="sftp-head">
           <span className="title">
             <HardDriveDownload size={13} /> {t('sftp')}
@@ -272,7 +258,7 @@ export function SftpPanel({ tab }: { tab: Tab }) {
   return (
     <aside
       className="sftp"
-      style={{ width: prefs.width }}
+      style={{ width: panel.width }}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes('Files')) {
           e.preventDefault()
@@ -429,7 +415,7 @@ export function SftpPanel({ tab }: { tab: Tab }) {
 
       <TransferList tabId={tab.id} />
 
-      <div className="sftp-resize" onMouseDown={startResize} />
+      <div className="resize-handle" onMouseDown={panel.startResize} onDoubleClick={panel.reset} title={t('resizeHint')} />
 
       {dragOver && (
         <div className="drop-overlay">

@@ -13,6 +13,7 @@ import { StatusBar } from './components/StatusBar'
 import { TabBar } from './components/TabBar'
 import { TerminalArea } from './components/TerminalArea'
 import { Toasts } from './components/Toasts'
+import { TooltipLayer } from './components/TooltipLayer'
 import { activateRelative, bindIpc, closeTab, openLocal } from './store/actions'
 import { useApp } from './store/appStore'
 import { registry } from './terminal/registry'
@@ -24,14 +25,22 @@ function inkFor(hex: string): string {
   return lum > 0.6 ? '#05201c' : '#ffffff'
 }
 
+/** Branded themes ship their own palette, so the user accent is not applied to them. */
+const FIXED_PALETTE_THEMES = new Set(['vs', 'retro'])
+
 function applyTheme(settings: AppSettings): void {
   const root = document.documentElement
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   const theme = settings.uiTheme === 'system' ? (prefersDark ? 'dark' : 'light') : settings.uiTheme
   root.dataset.theme = theme
   root.lang = settings.language
-  root.style.setProperty('--accent', settings.accent)
-  root.style.setProperty('--accent-ink', inkFor(settings.accent))
+  if (FIXED_PALETTE_THEMES.has(theme)) {
+    root.style.removeProperty('--accent')
+    root.style.removeProperty('--accent-ink')
+  } else {
+    root.style.setProperty('--accent', settings.accent)
+    root.style.setProperty('--accent-ink', inkFor(settings.accent))
+  }
   root.style.setProperty('--term-bg', getTerminalTheme(settings.terminalTheme).theme.background ?? '#0b0e14')
 }
 
@@ -171,6 +180,7 @@ export function App() {
       {paletteOpen && <CommandPalette onToggleSidebar={toggleSidebar} onToggleSftp={toggleSftp} />}
       <PromptHost />
       <Toasts />
+      <TooltipLayer />
     </div>
   )
 }
