@@ -1,243 +1,175 @@
 <div align="center">
 
-<img src="docs/icon.png" width="128" height="128" alt="Termora icon" />
+<img src="docs/icon.png" width="112" height="112" alt="Termora" />
 
 # Termora
 
-**Современный SSH-терминал для macOS в духе MobaXterm** — сохранённые сессии, SFTP-браузер с редактором файлов и живой мониторинг серверов в одном красивом окне.
+A MobaXterm-style SSH client for macOS: saved sessions, an SFTP browser with a built-in editor, and live server monitoring in one window.
 
-[![macOS](https://img.shields.io/badge/macOS-13%2B-111?logo=apple&logoColor=white)](#-скачать)
-[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-arm64-5eead4)](#-скачать)
-[![Electron](https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
-[![Tests](https://img.shields.io/badge/tests-unit%20%2B%20e2e-a78bfa)](#-тесты)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/nikserbur/termora?label=release&color=3d8bff)](https://github.com/nikserbur/termora/releases/latest)
+[![Platform](https://img.shields.io/badge/macOS-13%2B%20·%20Apple%20Silicon-555)](#requirements)
+[![License](https://img.shields.io/badge/license-MIT-555)](LICENSE)
 
-[**⬇️ Скачать DMG**](download/) · [Возможности](#-возможности) · [Установка](#-установка) · [Горячие клавиши](#-горячие-клавиши) · [Сборка](#-сборка-из-исходников) · [English](README.en.md)
+[Download](#installation) · [Features](#features) · [Screenshots](#screenshots) · [Getting started](#getting-started) · [Build from source](#building-from-source) · [Русский](README.ru.md)
 
-<img src="docs/screenshots/main.png" alt="Termora: сессии, SFTP, терминал и мониторинг" />
+<img src="docs/screenshots/main.png" alt="Termora main window: sessions, SFTP browser, terminal and server monitor" />
 
 </div>
 
----
+## Features
 
-## ✨ Возможности
+**Terminal**
+- Local shell and SSH sessions in tabs, powered by xterm.js with GPU rendering, true colour and full Unicode.
+- Find in output, clickable links, copy on select and right-click paste (optional).
+- Broadcast input to every connected tab (MultiExec), one-click reconnect.
+- Optional MobaXterm-style output highlighting (IP addresses, URLs, `error` / `warning` / `ok` keywords) and a session info box on connect.
 
-### 🖥 Терминал
-- **Локальный терминал** (ваш `$SHELL` как login-shell) и **SSH-сессии** во вкладках — перетаскиваются, переключаются `⌘1…⌘9`.
-- Быстрый рендер на **xterm.js + WebGL**, truecolor, Unicode 11, корректная кириллица и эмодзи.
-- Поиск по выводу `⌘F`, очистка `⌘K`, кликабельные ссылки (`⌘`+клик), копирование при выделении и вставка правой кнопкой (настраивается).
-- **MultiExec** — ввод сразу во все подключённые вкладки (как в MobaXterm).
-- **Подсветка вывода как в MobaXterm**: IP-адреса, ссылки, `error`/`failed`, `warning`, `ok`/`enabled`/`running`, флаги команд — без вмешательства в полноэкранные программы (vim, htop).
-- **Информационная рамка при подключении**: адрес, SSH, проверенный ключ хоста, SFTP и мониторинг.
-- Переподключение в один клик, если сессия оборвалась.
+**Sessions and authentication**
+- Saved sessions with folders, colour tags and search; one-click import from `~/.ssh/config`.
+- Quick connect with `user@host:port` or `ssh -p 2222 user@host`.
+- Password, private key (with passphrase), ssh-agent and keyboard-interactive / 2FA authentication.
+- Passwords and passphrases are encrypted with the macOS Keychain and never shown in the UI.
+- Host keys are checked on every connection (SHA-256 fingerprints, warning if a key changes).
 
-### 🗂 Сессии
-- Сохранённые подключения с **папками**, цветными метками, поиском и «недавними» на стартовом экране.
-- Аутентификация: **пароль**, **SSH-ключ** (в т.ч. с паролем), **ssh-agent**, **keyboard-interactive / 2FA**.
-- Пароли и passphrase хранятся **зашифрованными через macOS Keychain** — в интерфейс они не возвращаются никогда.
-- **Импорт из `~/.ssh/config`** одной кнопкой, быстрое подключение строкой `user@host:port` или `ssh -p 2222 user@host`.
-- Команда при входе (например `cd /var/www && git status`).
+**SFTP browser and editor**
+- File panel next to the terminal with breadcrumbs, sorting by name, size or date, and a resizable width.
+- Instant filter for the current folder and recursive search on the server.
+- Built-in editor with syntax highlighting for about 20 languages; `⌘S` saves straight to the server and warns if the file changed remotely in the meantime.
+- Upload by dragging files from Finder, download queue with progress, new file / folder, rename, delete, permissions (chmod).
 
-### 📁 SFTP-браузер и редактор файлов
-- Панель файлов сервера рядом с терминалом: **хлебные крошки** пути, переход вверх/домой, изменяемая ширина.
-- **Сортировка** по имени, размеру и дате изменения (клик по заголовку, повторный — обратный порядок; папки всегда сверху).
-- **Фильтр** по текущей папке (поддерживает `*.log`, `?`) и **рекурсивный поиск по серверу** по `Enter` — быстро находит файлы во вложенных папках.
-- **Встроенный редактор** (CodeMirror 6): подсветка ~20 языков (YAML, JSON, Python, JS/TS, Nginx, Dockerfile, Shell, INI/.env, SQL, Markdown…), поиск, `⌘S` — сохранить прямо на сервер. Если файл изменили на сервере после открытия — приложение предупредит и не перезапишет его молча.
-- Загрузка файлов и папок **перетаскиванием из Finder**, скачивание (в `~/Downloads` или в выбранную папку), очередь передач с прогрессом.
-- Создание файлов и папок, переименование, удаление, **права доступа (chmod)**, копирование пути, мультивыделение `⌘`/`⇧`.
-- Статистика внизу панели: количество объектов, общий и выбранный размер.
+**Server monitoring**
+- Status bar with CPU, memory, disk, network, load, uptime and users for the active connection.
+- Monitor panel (`⇧⌘M`) with CPU, memory and network graphs, all disks, swap and top processes.
+- No agent to install: statistics are read over the same SSH connection (Linux and macOS servers).
 
-### 📊 Мониторинг сервера
-- **Нижний тулбар** как в MobaXterm: CPU, память, диск, сеть ↓/↑, load average, аптайм, пользователи.
-- **Панель мониторинга** (`⇧⌘M`): графики CPU/памяти/сети за последние минуты, все диски, swap, топ процессов, ОС и ядро.
-- Работает **без установки агентов**: статистика читается по тому же SSH-соединению из `/proc` (Linux) или `sysctl`/`vm_stat` (macOS).
-- Для локальной вкладки показывается нагрузка вашего Mac.
+**Appearance**
+- Six themes: Dark, Light, System, Visual Studio, MobaXterm and Windows 95.
+- Nine terminal colour schemes, adjustable font, cursor and scrollback; English and Russian UI.
 
-### 🎨 Интерфейс и темы
-- **6 тем оформления:** тёмная, светлая, системная, **Visual Studio** (как VS 2019 Dark: синяя активная вкладка, подсветка VS), **MobaXterm** (тёмный Windows-интерфейс, скруглённые вкладки сессий, панель мониторинга Moba с мини-графиком CPU, всеми дисками и пользователями, рамка подключения и подсветка вывода) и олдскульная **Windows 95** (серые объёмные кнопки, синие заголовки окон, бирюзовый рабочий стол, графики как в Диспетчере задач).
-- 9 цветовых схем терминала: Moda Night, Tokyo Night, Dracula, Nord, Solarized Dark, Visual Studio Dark, MobaXterm, MS-DOS, Paper; 6 акцентных цветов.
-- **Адаптивная нижняя строка**: при сужении окна менее важные блоки прячутся по приоритету, кнопки не обрезаются.
-- Подсказки при наведении на все кнопки (с горячими клавишами), **ширина панели сессий и SFTP меняется перетаскиванием** границы (двойной клик — по умолчанию).
-- Пиксельная иконка в стиле 90-х и лёгкие ретро-детали: «светодиодные» индикаторы, графики на сетке.
-- Палитра команд `⌘P`, уведомления, полностью **русский и английский** интерфейс.
+## Screenshots
 
-<details>
-<summary><b>📸 Ещё скриншоты</b></summary>
-
-| Стартовый экран | Редактор файлов |
+| Start screen and recent sessions | Remote file editor |
 |---|---|
-| ![Welcome](docs/screenshots/welcome.png) | ![Editor](docs/screenshots/editor.png) |
-| **Поиск по серверу** | **Светлая тема** |
-| ![Search](docs/screenshots/sftp-search.png) | ![Light](docs/screenshots/light.png) |
-| **Тема MobaXterm: рамка подключения и подсветка вывода** | |
-| ![MobaXterm](docs/screenshots/theme-moba.png) | |
-| **Тема Visual Studio** | **Редактор в теме Visual Studio** |
-| ![Visual Studio](docs/screenshots/theme-vs.png) | ![VS editor](docs/screenshots/theme-vs-editor.png) |
-| **Тема Windows 95** | **Рабочий стол Windows 95** |
-| ![Windows 95](docs/screenshots/theme-retro.png) | ![Windows 95 start](docs/screenshots/theme-retro-welcome.png) |
-| **Настройки и выбор темы** | **Настройки (тёмная)** |
-| ![Theme picker](docs/screenshots/theme-retro-settings.png) | ![Settings](docs/screenshots/settings.png) |
+| ![Start screen](docs/screenshots/welcome.png) | ![Editor](docs/screenshots/editor.png) |
+| **File actions in the SFTP browser** | **Recursive search on the server** |
+| ![SFTP menu](docs/screenshots/sftp-menu.png) | ![Search](docs/screenshots/sftp-search.png) |
+| **New session** | **Host key verification** |
+| ![New session](docs/screenshots/session-editor.png) | ![Host key](docs/screenshots/hostkey.png) |
+| **Command palette** | **Settings** |
+| ![Palette](docs/screenshots/palette.png) | ![Settings](docs/screenshots/settings.png) |
+| **MobaXterm theme with output highlighting** | **Visual Studio theme** |
+| ![MobaXterm theme](docs/screenshots/theme-moba.png) | ![Visual Studio theme](docs/screenshots/theme-vs.png) |
+| **Windows 95 theme** | **Light theme** |
+| ![Windows 95 theme](docs/screenshots/theme-retro.png) | ![Light theme](docs/screenshots/light.png) |
 
-<sub>Скриншоты сняты на демо-проекте; имя хоста и пользователя заменены на демонстрационные.</sub>
-</details>
+Screenshots were taken against a demo project; host and user names are placeholders.
 
----
+## Installation
 
-## ⬇️ Скачать
+### Requirements
 
-| Файл | Платформа |
+- macOS 13 Ventura or later
+- A Mac with Apple Silicon (M1, M2, M3 or M4)
+
+### Download
+
+| File | Size |
 |---|---|
-| [**download/Termora-1.2.0-arm64.dmg**](download/) | macOS 13+ · Apple Silicon (M1/M2/M3/M4) |
+| [download/Termora-1.2.0-arm64.dmg](download/) | ~112 MB |
 
-Тот же DMG прикреплён к [последнему релизу](../../releases/latest).
-
-## 📦 Установка
-
-1. Откройте DMG и перетащите **Termora** в папку **Applications**.
-2. Запустите приложение из Launchpad или Applications.
-
-### 🔓 Как добавить исключение macOS (Gatekeeper)
-
-Приложение собрано без платного сертификата Apple Developer, поэтому при первом запуске macOS может написать
-*«Не удаётся проверить разработчика»* или *«Приложение повреждено»*. Это ожидаемо — добавьте исключение **любым** способом:
-
-- **Через Finder:** правый клик по `Termora.app` в Applications → **Открыть** → в диалоге снова **Открыть**.
-- **Через Настройки:** Системные настройки → **Конфиденциальность и безопасность** → внизу «Termora заблокировано» → **Всё равно открыть**.
-- **Одной командой в Терминале** (снимает карантин со скачанного приложения):
+The same file is attached to the [latest release](https://github.com/nikserbur/termora/releases/latest). To check the download, compare its SHA-256 with [download/SHA256SUMS.txt](download/SHA256SUMS.txt):
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Termora.app
+shasum -a 256 ~/Downloads/Termora-1.2.0-arm64.dmg
 ```
 
-После этого приложение открывается обычным двойным кликом.
+### Install
 
----
+1. Open the downloaded `Termora-1.2.0-arm64.dmg`.
+2. Drag **Termora** onto the **Applications** folder in the window that appears.
+3. Eject the disk image (drag it to the Trash or press `⌘E` in Finder).
+4. Start Termora from Applications, Launchpad or Spotlight.
 
-## ⌨️ Горячие клавиши
+<img src="docs/screenshots/install-dmg.png" width="560" alt="Drag Termora into Applications" />
 
-| Действие | Клавиши |
+### First launch
+
+Termora is not signed with a paid Apple Developer certificate, so macOS blocks the first launch of the downloaded copy. Allow it once in one of these ways:
+
+- **macOS 15 Sequoia and later:** open Termora, close the warning, then go to **System Settings → Privacy & Security**, scroll down to the message about Termora and click **Open Anyway**. Confirm with your password.
+- **macOS 13–14:** in Finder, Control-click (or right-click) Termora in Applications, choose **Open**, then click **Open** in the dialog.
+- **Any version, from Terminal:**
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/Termora.app
+  ```
+
+After that the app opens normally.
+
+When you save a password for the first time, macOS asks whether Termora may use its Keychain item **Termora Safe Storage**. Choose **Always Allow**. After installing a new version macOS may ask again.
+
+### Updating
+
+Download the new DMG and drag Termora into Applications again, replacing the old copy. Sessions, settings and known hosts are kept.
+
+### Uninstalling
+
+1. Quit Termora and move it from Applications to the Trash.
+2. Remove its data folder: `rm -rf ~/Library/Application\ Support/Termora`
+3. Optionally delete **Termora Safe Storage** in Keychain Access.
+
+## Getting started
+
+1. **Connect quickly.** On the start screen type `user@host` (or `ssh -p 2222 user@host`) and press Enter.
+2. **Save a session.** Press `⌘N`, enter the host, user and authentication method, then **Save & connect**. Sessions can be grouped into folders.
+3. **Import existing hosts.** Click **ssh config** at the bottom of the sidebar to import entries from `~/.ssh/config`.
+4. **Confirm the server key.** On the first connection Termora shows the server's fingerprint. Compare it with the one from your hosting provider or from `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the server.
+5. **Work with files.** Drag files from Finder onto the SFTP panel to upload, double-click a file to edit it, press `⌘S` to save. Type in the filter field and press Enter to search the whole folder tree.
+6. **Watch the server.** The status bar shows live statistics; click it or press `⇧⌘M` for the full monitor.
+7. **Change the look.** Open **Settings → Appearance** (`⌘,`) to choose a theme and terminal colours.
+
+## Keyboard shortcuts
+
+| Action | Shortcut |
 |---|---|
-| Новый локальный терминал | `⌘T` |
-| Новая SSH-сессия | `⌘N` |
-| Палитра команд | `⌘P` |
-| Закрыть вкладку / редактор | `⌘W` |
-| Переключить вкладку | `⌘1…⌘9`, `⌃Tab`, `⌃⇧Tab` |
-| Поиск в терминале / редакторе | `⌘F` |
-| Очистить терминал | `⌘K` |
-| Сохранить файл в редакторе | `⌘S` |
-| Панель сессий | `⌘B` |
-| SFTP-панель | `⇧⌘F` |
-| Панель мониторинга | `⇧⌘M` |
-| Настройки | `⌘,` |
-| SFTP: вверх / открыть / удалить / выделить всё | `⌫` / `↩` / `⌘⌫` / `⌘A` |
+| New local terminal | `⌘T` |
+| New SSH session | `⌘N` |
+| Command palette | `⌘P` |
+| Close tab or editor | `⌘W` |
+| Switch tab | `⌘1` … `⌘9`, `⌃Tab`, `⌃⇧Tab` |
+| Find in terminal or editor | `⌘F` |
+| Clear terminal | `⌘K` |
+| Save file in editor | `⌘S` |
+| Show / hide sessions, SFTP, monitor | `⌘B`, `⇧⌘F`, `⇧⌘M` |
+| Settings | `⌘,` |
 
----
+## Security
 
-## 🔐 Безопасность
+- Host keys are verified on every connection; a changed key blocks the connection until you decide.
+- Secrets are encrypted with Electron `safeStorage` (macOS Keychain) and never sent to the interface.
+- The interface runs sandboxed with context isolation and a strict Content Security Policy; every request to the main process is validated.
+- Remote commands for monitoring and search are fixed scripts with quoted arguments; a server-side search stops on its own after 13 seconds.
+- SFTP downloads never overwrite existing files and reject unsafe names; deleting a symlink never touches its target.
 
-- **Проверка ключа хоста (TOFU):** при первом подключении показывается SHA256-отпечаток ключа сервера; при его изменении — громкое предупреждение о возможной MITM-атаке и подключение блокируется до вашего решения.
-- **Секреты в Keychain:** пароли и passphrase шифруются через Electron `safeStorage` (ключ хранится в связке ключей macOS). В рендерер передаётся только флаг «пароль сохранён».
-- **Изолированный интерфейс:** `contextIsolation`, `sandbox`, без `nodeIntegration`, строгий CSP, запрет навигации и открытия окон; внешние ссылки — только `http(s)`.
-- **Валидация IPC:** все вызовы из интерфейса в основной процесс проверяются схемами `zod`.
-- **Удалённые команды без инъекций:** скрипт мониторинга статичен, а поиск по серверу передаётся в `sh -s` через stdin с POSIX-экранированием; «сторож» завершает поиск на сервере через 13 секунд.
-- **Скачивание без path traversal:** имена файлов от сервера проверяются, файлы не перезаписываются (`file (1).txt`).
+App data lives in `~/Library/Application Support/Termora/` (`sessions.json`, `settings.json`, `known_hosts.json`).
 
-Данные приложения: `~/Library/Application Support/Termora/` — `sessions.json`, `settings.json`, `known_hosts.json`.
+## Building from source
 
-## 📈 Что выполняется на сервере для мониторинга
-
-Один долгоживущий `exec`-канал по уже открытому SSH-соединению (без установки чего-либо) раз в N секунд печатает:
-`uname`, `/proc/stat`, `/proc/meminfo`, `/proc/loadavg`, `/proc/uptime`, `/proc/net/dev`, `df -kP`, `who`, `ps` — на Linux;
-`top -l 2`, `sysctl`, `vm_stat`, `netstat -ib`, `df -kP`, `ps` — на macOS. Мониторинг можно выключить глобально или для отдельной сессии.
-
----
-
-## 🛠 Сборка из исходников
-
-Требования: macOS, **Node.js 22+**, Xcode Command Line Tools (`xcode-select --install`).
+Requires macOS, Node.js 22 or later and the Xcode Command Line Tools.
 
 ```bash
-git clone https://github.com/nikserbur/termora.git && cd termora
-npm install          # зависимости + исправление прав node-pty
-npm run dev          # запуск в режиме разработки с hot reload
-npm test             # unit-тесты (vitest)
-npm run dist         # сборка DMG → dist/Termora-<версия>-arm64.dmg
+git clone https://github.com/nikserbur/termora.git
+cd termora
+npm install
+npm run dev      # run with hot reload
+npm test         # unit tests
+npm run dist     # build the DMG into dist/
 ```
 
-Иконка и фон DMG генерируются из SVG: `npm run icon`.
+End-to-end tests drive the built app with Playwright: run `npm run build && npm run e2e`. Set `XMT_E2E_SSH_HOST`, `XMT_E2E_SSH_PORT`, `XMT_E2E_SSH_USER` and `XMT_E2E_SSH_KEY` to include the SSH and SFTP scenarios.
 
-### 🧪 Тесты
+Built with Electron, React, TypeScript, xterm.js, ssh2, node-pty and CodeMirror.
 
-- **Unit** (`npm test`): парсеры статистики Linux/macOS, сортировка/фильтр файлов, экранирование и разбор поиска, `~/.ssh/config`, быстрый ввод `user@host:port`, known_hosts, батчинг вывода терминала.
-- **E2E** (`npm run e2e` после `npm run build`): Playwright управляет настоящим приложением — локальный шелл с UTF-8, SSH по ключу, подтверждение ключа хоста, SFTP (загрузка, поиск, сортировка, редактирование с сохранением, chmod, удаление), мониторинг, переподключение, настройки и тема.
-  Для SSH-части задайте `XMT_E2E_SSH_HOST`, `XMT_E2E_SSH_PORT`, `XMT_E2E_SSH_USER`, `XMT_E2E_SSH_KEY`.
+## License
 
-## 🧩 Архитектура
-
-```mermaid
-flowchart LR
-  subgraph Renderer["Renderer · React 19 + zustand"]
-    UI[Сайдбар · Вкладки · xterm.js<br/>SFTP · CodeMirror · Мониторинг]
-  end
-  subgraph Preload["Preload · contextBridge"]
-    API[window.xmt — типизированный API]
-  end
-  subgraph Main["Main · Node.js"]
-    IPC[IPC + zod]
-    PTY[node-pty<br/>локальный шелл]
-    SSH[ssh2<br/>shell · exec · sftp]
-    MON[Мониторинг<br/>remote / local]
-    STORE[Сессии · настройки<br/>known_hosts · Keychain]
-  end
-  UI <--> API <--> IPC
-  IPC --> PTY & SSH & STORE
-  SSH --> MON
-```
-
-```
-src/
-├── main/            # основной процесс: SSH, PTY, SFTP, мониторинг, хранилища, IPC
-│   ├── ssh/         # подключение, цепочка аутентификации, импорт ~/.ssh/config
-│   ├── sftp/        # файловые операции, передачи, поиск по серверу
-│   ├── monitor/     # скрипт мониторинга и парсеры Linux/macOS
-│   └── store/       # сессии (Keychain), настройки, known_hosts
-├── preload/         # безопасный мост window.xmt
-├── renderer/        # интерфейс на React
-└── shared/          # общие типы, IPC-каналы, форматирование, сортировка
-e2e/                 # Playwright-сценарии и генерация скриншотов
-```
-
-**Стек:** Electron 44 · React 19 · TypeScript (strict) · xterm.js 6 · ssh2 · node-pty · CodeMirror 6 · zustand · zod · systeminformation · electron-vite · electron-builder · Vitest · Playwright.
-
-## 🗺 Планы
-
-- [ ] Проброс портов и jump-host (ProxyJump)
-- [ ] Разделение окна на панели (split view)
-- [ ] Universal-сборка (Intel + Apple Silicon), подпись и нотаризация
-- [ ] Автообновление
-- [ ] Синхронизация сессий между Mac
-
-## ❓ Частые вопросы
-
-<details>
-<summary>«Приложение повреждено и не может быть открыто»</summary>
-
-Это Gatekeeper для неподписанных приложений — см. [Как добавить исключение macOS](#-как-добавить-исключение-macos-gatekeeper).
-</details>
-
-<details>
-<summary>Мониторинг показывает «Сбор статистики…»</summary>
-
-Первые цифры появляются через 1–2 интервала. На минимальных системах (BusyBox без `/proc` или `ps -o`) часть метрик может отсутствовать. Интервал меняется в Настройки → Файлы и мониторинг.
-</details>
-
-<details>
-<summary>Предупреждение «Ключ хоста изменился!»</summary>
-
-Сервер предъявил ключ, отличный от сохранённого. Если вы переустанавливали сервер — подтвердите замену ключа. Если нет — не подключайтесь и выясните причину.
-</details>
-
-## 📄 Лицензия
-
-[MIT](LICENSE) — используйте, изменяйте и распространяйте свободно.
+[MIT](LICENSE)

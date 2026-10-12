@@ -66,7 +66,7 @@ writeFileSync(
   join(dataDir, 'known_hosts.json'),
   JSON.stringify({ [`${env.XMT_E2E_SSH_HOST}:${demo.port}`]: { fingerprint, keyType: 'ssh-ed25519', addedAt: now } })
 )
-writeFileSync(join(dataDir, 'settings.json'), JSON.stringify({ monitorInterval: 2 }))
+writeFileSync(join(dataDir, 'settings.json'), JSON.stringify({ monitorInterval: 2, language: env.XMT_DEMO_LANG ?? 'en' }))
 
 const app = await electron.launch({ args: [join(root, 'e2e', 'launch-main.cjs')], env: { ...env, XMT_E2E_DATA: dataDir } })
 const page = await app.firstWindow()
@@ -77,6 +77,7 @@ const masks = [
   [`${userInfo().username}@${env.XMT_E2E_SSH_HOST}`, 'deploy@10.0.4.21'],
   [userInfo().username, 'deploy'],
   [env.XMT_E2E_SSH_HOST, '10.0.4.21'],
+  ['localhost', 'srv-07.example.com'],
   [`:${demo.port}`, '']
 ]
 const procs = ['nginx', 'node', 'postgres', 'redis-server', 'python3', 'dockerd', 'sshd', 'containerd']
@@ -154,11 +155,52 @@ await page.waitForTimeout(300)
 await shot('sftp-search')
 await page.click('.search-banner .icon-btn')
 
+// File actions menu in the SFTP browser
+await page.click('.file-row:has-text("docker-compose.yml")', { button: 'right' })
+await page.waitForSelector('.ctx-menu')
+await page.waitForTimeout(250)
+await shot('sftp-menu')
+await page.keyboard.press('Escape')
+
+// Command palette
+await page.click('.titlebar-actions .icon-btn:nth-child(3)')
+await page.waitForSelector('.palette input')
+await page.keyboard.type('prod')
+await page.waitForTimeout(250)
+await shot('palette')
+await page.keyboard.press('Escape')
+
+// New session dialog
+await page.click('.sidebar-top .icon-btn:nth-child(2)')
+await page.waitForSelector('.modal')
+await page.fill('.modal input.input.mono >> nth=0', '10.0.4.30')
+await page.fill('.modal .grid-2 input >> nth=0', 'deploy')
+await page.fill('.modal .grid-2 input >> nth=1', 'api-gateway')
+await page.click('.modal .segmented button:nth-child(2)')
+await page.fill('.modal input[placeholder="~/.ssh/id_ed25519"]', '~/.ssh/id_ed25519')
+await page.fill('.modal input[list="xmt-folders"]', 'production')
+await page.fill('.modal input.input.mono >> nth=-1', 'cd /srv/app && git status')
+await page.waitForTimeout(300)
+await shot('session-editor')
+await page.keyboard.press('Escape')
+
+// Host key confirmation for a server seen for the first time
+await page.click('.tab.home')
+await page.fill('.quick input', `ssh -p ${demo.port} deploy@localhost`)
+await page.press('.quick input', 'Enter')
+await page.waitForSelector('.fingerprint', { timeout: 15000 })
+await page.waitForTimeout(400)
+await shot('hostkey')
+await page.click('.modal-foot .btn.ghost')
+await page.waitForTimeout(500)
+await page.click('.tab.active .tab-close')
+await page.click('.tab:has-text("prod-web-01")')
+
 await page.click('.titlebar-actions .icon-btn:nth-child(4)')
 await page.waitForSelector('.settings')
 await page.waitForTimeout(400)
 await shot('settings')
-await page.click('.ui-theme-card:has-text("Светлая")')
+await page.click('.ui-theme-card >> nth=1')
 await page.click('.theme-chip:has-text("Paper")')
 await page.keyboard.press('Escape')
 await page.waitForTimeout(500)
@@ -172,24 +214,11 @@ for (const [label, name] of [
   await page.waitForSelector('.settings')
   await page.click(`.ui-theme-card:has-text("${label}")`)
   await page.waitForTimeout(300)
-  if (name === 'theme-retro') await shot(`${name}-settings`)
   await page.keyboard.press('Escape')
   await page.click('.sb-toggle')
   await page.waitForTimeout(2500)
   await shot(name)
   await page.click('.sb-toggle')
-  if (name === 'theme-retro') {
-    await page.click('.tab.home')
-    await page.waitForTimeout(400)
-    await shot(`${name}-welcome`)
-    await page.click('.tab:has-text("prod-web-01")')
-  } else {
-    await page.dblclick('.file-row:has-text("docker-compose.yml")')
-    await page.waitForSelector('.editor-window .cm-content')
-    await page.waitForTimeout(500)
-    await shot(`${name}-editor`)
-    await page.click('.editor-head .icon-btn')
-  }
 }
 
 // MobaXterm theme: info box + output highlighting on a fresh session
