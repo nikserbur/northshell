@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 interface Tip {
   label: string
@@ -9,6 +9,7 @@ interface Tip {
 }
 
 const DELAY_MS = 380
+const EDGE = 8
 const SHORTCUT_RE = /\s+((?:[⌘⇧⌃⌥]+\S*|↩|⇧↩|esc))$/
 
 /** Splits "Close tab ⌘W" into a label and a keycap. */
@@ -25,6 +26,7 @@ export function TooltipLayer() {
   const [tip, setTip] = useState<Tip | null>(null)
   const timer = useRef<number | null>(null)
   const current = useRef<HTMLElement | null>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const clear = (): void => {
@@ -61,21 +63,33 @@ export function TooltipLayer() {
     window.addEventListener('keydown', clear, true)
     window.addEventListener('wheel', clear, { capture: true, passive: true })
     window.addEventListener('blur', clear)
+    document.addEventListener('mouseleave', clear)
     return () => {
       window.removeEventListener('mouseover', onOver, true)
       window.removeEventListener('mousedown', clear, true)
       window.removeEventListener('keydown', clear, true)
       window.removeEventListener('wheel', clear, true)
       window.removeEventListener('blur', clear)
+      document.removeEventListener('mouseleave', clear)
     }
   }, [])
 
+  // Keep the whole tooltip inside the window, whatever its measured width.
+  useLayoutEffect(() => {
+    const box = boxRef.current
+    if (!box || !tip) return
+    const width = box.offsetWidth
+    const left = Math.min(Math.max(tip.x - width / 2, EDGE), window.innerWidth - width - EDGE)
+    box.style.left = `${Math.max(EDGE, left)}px`
+    box.style.visibility = 'visible'
+  }, [tip])
+
   if (!tip) return null
-  const left = Math.min(Math.max(tip.x, 90), window.innerWidth - 90)
   return (
     <div
+      ref={boxRef}
       className={`tooltip ${tip.below ? 'below' : 'above'}`}
-      style={{ left, top: tip.y }}
+      style={{ left: tip.x, top: tip.y, visibility: 'hidden' }}
       role="tooltip"
     >
       <span>{tip.label}</span>

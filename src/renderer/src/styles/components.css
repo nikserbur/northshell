@@ -665,12 +665,8 @@ select.input {
   animation: tip-in 120ms var(--ease);
 }
 
-.tooltip.below {
-  transform: translateX(-50%);
-}
-
 .tooltip.above {
-  transform: translate(-50%, -100%);
+  transform: translateY(-100%);
 }
 
 .tooltip .kbd {

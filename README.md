@@ -83,7 +83,7 @@
 
 | Файл | Платформа |
 |---|---|
-| [**download/Termora-1.1.0-arm64.dmg**](download/) | macOS 13+ · Apple Silicon (M1/M2/M3/M4) |
+| [**download/Termora-1.1.1-arm64.dmg**](download/) | macOS 13+ · Apple Silicon (M1/M2/M3/M4) |
 
 Тот же DMG прикреплён к [последнему релизу](../../releases/latest).
 

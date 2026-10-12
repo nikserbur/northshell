@@ -67,6 +67,12 @@
   border-radius: 0;
 }
 
+/* The "+" button sits on the same baseline as the tabs */
+:root[data-theme='vs'] .tabs > .icon-btn {
+  align-self: flex-end;
+  height: 26px;
+}
+
 :root[data-theme='vs'] .tab.active {
   background: #007acc;
   color: #ffffff;
@@ -175,35 +181,10 @@
   box-shadow: inset 0 0 0 1px #007acc;
 }
 
-/* Orange status bar */
+/* Calm graphite status bar with a thin VS-blue rule on top */
 :root[data-theme='vs'] .statusbar {
-  --chrome-solid: #ca5100;
-  --text-0: #ffffff;
-  --text-1: #fff1e6;
-  --text-2: #ffd9bf;
-  --line: rgba(255, 255, 255, 0.22);
-  --line-strong: rgba(255, 255, 255, 0.3);
-  --hover: rgba(255, 255, 255, 0.14);
-  background: #ca5100;
-  border-top-color: #ca5100;
-}
-
-:root[data-theme='vs'] .statusbar .lvl-ok {
-  --meter-color: #ffffff;
-}
-
-:root[data-theme='vs'] .statusbar .lvl-warn {
-  --meter-color: #ffe08a;
-}
-
-:root[data-theme='vs'] .statusbar .lvl-crit {
-  --meter-color: #ffd0d0;
-}
-
-:root[data-theme='vs'] .statusbar .rx,
-:root[data-theme='vs'] .statusbar .tx,
-:root[data-theme='vs'] .statusbar svg {
-  color: #ffffff;
+  background: #2d2d30;
+  border-top: 1px solid #007acc;
 }
 
 /* Code editor */

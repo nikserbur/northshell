@@ -50,7 +50,7 @@
 
 | File | Platform |
 |---|---|
-| [**download/Termora-1.1.0-arm64.dmg**](download/) | macOS 13+ · Apple Silicon |
+| [**download/Termora-1.1.1-arm64.dmg**](download/) | macOS 13+ · Apple Silicon |
 
 The same DMG is attached to the [latest release](../../releases/latest).
 
