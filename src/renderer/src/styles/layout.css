@@ -1,0 +1,479 @@
+.app {
+  display: flex;
+  height: 100%;
+}
+
+/* ───────────── Sidebar ───────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--chrome);
+  border-right: 1px solid var(--line);
+  min-height: 0;
+}
+
+.sidebar-top {
+  height: var(--titlebar-h);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px 0 84px;
+  gap: 2px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 16px 12px;
+}
+
+.brand-mark,
+.pixel {
+  flex: none;
+  image-rendering: pixelated;
+}
+
+.brand-name {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  font-size: 14px;
+}
+
+.brand-name em {
+  font-style: normal;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.sidebar-search {
+  padding: 0 12px 10px;
+}
+
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2px 8px 12px;
+}
+
+.sidebar-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px 4px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.sidebar-section .count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-3);
+}
+
+.sidebar-section button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  font-weight: inherit;
+}
+
+.session-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  transition: background var(--fast) var(--ease);
+}
+
+.session-row:hover {
+  background: var(--hover);
+}
+
+.session-row.is-open::after {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--row-color, var(--accent));
+}
+
+.monogram {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font: 600 11px/1 var(--font-mono);
+  color: var(--mono-color, var(--accent));
+  background: color-mix(in oklab, var(--mono-color, var(--accent)) 15%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--mono-color, var(--accent)) 28%, transparent),
+    2px 2px 0 var(--hard-shadow);
+  text-transform: uppercase;
+}
+
+.session-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.session-name {
+  font-weight: 550;
+  font-size: 12.5px;
+}
+
+.session-host {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-2);
+}
+
+.session-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.session-row:hover .session-actions,
+.session-row:focus-within .session-actions {
+  opacity: 1;
+}
+
+.sidebar-footer {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* ───────────── Main column ───────────── */
+.main {
+  container: main / inline-size;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-0);
+}
+
+.titlebar {
+  height: var(--titlebar-h);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 10px;
+  background: var(--chrome-solid);
+  border-bottom: 1px solid var(--line);
+}
+
+.titlebar.no-sidebar {
+  padding-left: 84px;
+}
+
+.tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  height: 100%;
+  padding: 0 2px;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 10px;
+  max-width: 220px;
+  min-width: 112px;
+  border-radius: var(--radius-s);
+  color: var(--text-1);
+  font-size: 12.5px;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.tab:hover {
+  background: var(--hover);
+  color: var(--text-0);
+}
+
+.tab.active {
+  background: var(--surface-2);
+  color: var(--text-0);
+  box-shadow:
+    0 0 0 1px var(--line-strong),
+    0 6px 16px -10px rgba(0, 0, 0, 0.6);
+}
+
+.tab.active::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: -1px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--tab-color, var(--accent));
+  box-shadow: 0 0 12px var(--tab-color, var(--accent));
+}
+
+.tab.home {
+  min-width: 0;
+  padding: 0 9px;
+}
+
+.tab .tab-title {
+  flex: 1;
+}
+
+.tab .tab-close {
+  opacity: 0;
+}
+
+.tab:hover .tab-close,
+.tab.active .tab-close {
+  opacity: 1;
+}
+
+.tab.dragging {
+  opacity: 0.4;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 1.5px;
+  background: var(--text-3);
+}
+
+.dot.connected {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ok) 18%, transparent);
+}
+
+.dot.connecting {
+  background: var(--warn);
+  animation: pulse 1.1s var(--ease) infinite;
+}
+
+.dot.error {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--danger) 18%, transparent);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ───────────── Workspace ───────────── */
+.workspace {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+
+.terminal-area {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  background: var(--term-bg);
+}
+
+.term-host {
+  position: absolute;
+  inset: 0;
+  padding: 10px 4px 6px 14px;
+  visibility: hidden;
+}
+
+.term-host.active {
+  visibility: visible;
+}
+
+.term-host .xterm {
+  height: 100%;
+}
+
+.term-host .xterm-viewport {
+  background-color: transparent !important;
+}
+
+/* ───────────── Status bar ───────────── */
+.statusbar {
+  height: var(--statusbar-h);
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  background: var(--chrome-solid);
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-1);
+  overflow: clip;
+}
+
+.sb-seg {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border-right: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.sb-seg svg {
+  color: var(--text-2);
+  flex: none;
+}
+
+.sb-seg .label {
+  color: var(--text-2);
+}
+
+.sb-seg .value {
+  color: var(--text-0);
+}
+
+.sb-host {
+  font-family: var(--font-ui);
+  font-weight: 550;
+  font-size: 11.5px;
+  color: var(--text-0);
+  max-width: 280px;
+}
+
+.sb-spacer {
+  flex: 1;
+}
+
+.sb-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  color: var(--text-1);
+  border-left: 1px solid var(--line);
+}
+
+.sb-toggle:hover,
+.sb-click:hover {
+  background: var(--hover);
+  color: var(--text-0);
+}
+
+.meter {
+  position: relative;
+  width: 46px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+/* 90s touch: LED-segment look, like the old Task Manager meters */
+.meter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 4px, var(--chrome-solid) 4px 6px);
+}
+
+.meter > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--meter-color, var(--accent));
+  transform-origin: left;
+  transition: transform var(--normal) var(--ease);
+}
+
+.lvl-ok {
+  --meter-color: var(--accent);
+}
+
+.lvl-warn {
+  --meter-color: var(--warn);
+}
+
+.lvl-crit {
+  --meter-color: var(--danger);
+}
+
+.rx {
+  color: var(--info);
+}
+
+.tx {
+  color: var(--violet);
+}
+
+.sb-click {
+  font: inherit;
+  color: inherit;
+}
+
+@container main (max-width: 1240px) {
+  .sb-opt2 {
+    display: none;
+  }
+}
+
+@container main (max-width: 1080px) {
+  .sb-opt {
+    display: none;
+  }
+}
+
+@container main (max-width: 900px) {
+  .sb-toggle-label {
+    display: none;
+  }
+}

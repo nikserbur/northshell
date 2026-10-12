@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="760" viewBox="0 0 1080 760" shape-rendering="crispEdges">
+  <defs>
+    <pattern id="dots" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="2" height="2" fill="#ffffff" fill-opacity="0.05"/>
+    </pattern>
+  </defs>
+  <rect width="1080" height="760" fill="#1a2030"/>
+  <rect width="1080" height="760" fill="url(#dots)"/>
+  <g fill="#5eead4">
+    <rect x="452" y="392" width="20" height="16"/>
+    <rect x="488" y="392" width="20" height="16"/>
+    <rect x="524" y="392" width="20" height="16"/>
+    <rect x="560" y="392" width="20" height="16"/>
+    <rect x="596" y="376" width="16" height="48"/>
+    <rect x="612" y="384" width="16" height="32"/>
+    <rect x="628" y="392" width="16" height="16"/>
+  </g>
+  <text x="540" y="640" text-anchor="middle" font-family="Menlo, Monaco, monospace" font-size="24" fill="#c9cfda" fill-opacity="0.8">
+    Перетащите в Applications  ·  Drag to Applications
+  </text>
+</svg>

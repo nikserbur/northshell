@@ -1,0 +1,1 @@
+bb9752655a8f5e6661eb09bd2828191c7ddd4aab5acd2d6088a9d4e628459c6f  Termora-1.0.0-arm64.dmg

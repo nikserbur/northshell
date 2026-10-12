@@ -1,0 +1,1028 @@
+/* ───────────── SFTP panel ───────────── */
+.sftp {
+  width: var(--sftp-w);
+  max-width: 60%;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface-1);
+  border-right: 1px solid var(--line);
+  position: relative;
+}
+
+.sftp-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 8px 6px 12px;
+}
+
+.sftp-head .title {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sftp-path {
+  margin: 0 8px 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  padding: 0 4px 0 8px;
+  border-radius: var(--radius-s);
+  background: var(--surface-0);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.sftp-path input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: 11.5px var(--font-mono);
+  color: var(--text-0);
+}
+
+.sftp-cols {
+  display: grid;
+  grid-template-columns: 1fr 64px 72px;
+  gap: 8px;
+  padding: 4px 14px 4px 14px;
+  font-size: 10.5px;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.sftp-cols span:not(:first-child) {
+  text-align: right;
+}
+
+.sftp-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 6px;
+  outline: none;
+}
+
+.file-row {
+  display: grid;
+  grid-template-columns: 1fr 64px 72px;
+  gap: 8px;
+  align-items: center;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+}
+
+.file-row:hover {
+  background: var(--hover);
+}
+
+.file-row.sel {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.file-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.file-name svg {
+  flex: none;
+  color: var(--text-2);
+}
+
+.file-name svg.dir {
+  color: var(--accent-fg);
+}
+
+.file-size,
+.file-date {
+  text-align: right;
+  font: 10.5px var(--font-mono);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.sftp-empty {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.sftp-empty svg {
+  color: var(--text-3);
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 6px;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  text-align: center;
+  border-radius: var(--radius-m);
+  border: 1.5px dashed var(--accent);
+  background: color-mix(in oklab, var(--surface-1) 80%, transparent);
+  color: var(--text-0);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+.drop-overlay svg {
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.transfers {
+  border-top: 1px solid var(--line);
+  max-height: 40%;
+  display: flex;
+  flex-direction: column;
+}
+
+.transfers-head {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px 4px 12px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.transfers-head .btn {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.transfers-list {
+  overflow-y: auto;
+  padding: 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.transfer {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 4px 8px;
+  align-items: center;
+  font-size: 11.5px;
+}
+
+.transfer > svg.up {
+  color: var(--violet);
+}
+
+.transfer > svg.down {
+  color: var(--info);
+}
+
+.transfer .pct {
+  font: 10.5px var(--font-mono);
+  color: var(--text-2);
+}
+
+.transfer .bar {
+  grid-column: 2 / 4;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.transfer .bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--violet));
+  transform-origin: left;
+  transition: transform var(--normal) linear;
+}
+
+.transfer.done .bar > i {
+  background: var(--ok);
+}
+
+.transfer.error .bar > i {
+  background: var(--danger);
+}
+
+/* ───────────── Terminal extras ───────────── */
+.term-overlay {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  z-index: 4;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 14px;
+  border-radius: var(--radius-l);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-pop);
+  animation: pop-in var(--normal) var(--ease);
+  max-width: calc(100% - 40px);
+}
+
+.term-overlay .msg {
+  font-size: 12.5px;
+  color: var(--text-1);
+}
+
+.find-bar {
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 4px 4px 10px;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-pop);
+  animation: pop-in var(--fast) var(--ease);
+}
+
+.find-bar input {
+  width: 220px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 12.5px;
+}
+
+.broadcast-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 24px;
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--accent-ink);
+  background: linear-gradient(90deg, var(--warn), color-mix(in oklab, var(--warn) 70%, var(--danger)));
+}
+
+/* ───────────── Monitor drawer ───────────── */
+.monitor {
+  flex: none;
+  height: 250px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-1);
+  display: grid;
+  grid-template-columns: minmax(230px, 1.25fr) repeat(4, minmax(160px, 1fr)) minmax(230px, 1.3fr);
+  gap: 1px;
+  overflow-x: auto;
+  background-color: var(--line);
+  animation: slide-up var(--normal) var(--ease);
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+
+.mon-card {
+  background: var(--surface-1);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mon-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.mon-title svg {
+  color: var(--accent-fg);
+}
+
+.mon-big {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font: 600 26px/1 var(--font-mono);
+  letter-spacing: -0.03em;
+}
+
+.mon-big small {
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+
+.spark {
+  width: 100%;
+  display: block;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 12px 12px;
+  background-position: -1px -1px;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px 10px;
+  font-size: 11.5px;
+}
+
+.kv dt {
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.kv dd {
+  margin: 0;
+  text-align: right;
+  font-family: var(--font-mono);
+  color: var(--text-0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-line {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.bar-line .top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bar-line .top span:last-child {
+  flex: none;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  color: var(--text-2);
+}
+
+.bar-line .track {
+  position: relative;
+  height: 7px;
+  border-radius: 1px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.bar-line .track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 5px, var(--surface-1) 5px 7px);
+}
+
+.bar-line .track > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--meter-color, var(--accent));
+  transform-origin: left;
+  transition: transform var(--normal) var(--ease);
+}
+
+.proc-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.proc-table td.name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-right: 6px;
+}
+
+.proc-table td {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.proc-table td.num {
+  text-align: right;
+  font-family: var(--font-mono);
+  color: var(--text-1);
+  width: 50px;
+}
+
+.proc-table td.pid {
+  font-family: var(--font-mono);
+  color: var(--text-3);
+  width: 58px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mon-waiting {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+  background: var(--surface-1);
+}
+
+.net-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font: 11.5px var(--font-mono);
+  white-space: nowrap;
+}
+
+/* ───────────── Welcome ───────────── */
+.welcome {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow-y: auto;
+  background:
+    radial-gradient(900px 420px at 50% -120px, var(--accent-soft), transparent 70%),
+    radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--surface-0);
+}
+
+.welcome-inner {
+  width: min(880px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 9vh 0 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+.welcome h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+.welcome h1 span {
+  background: linear-gradient(100deg, var(--accent), var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.welcome .lede {
+  margin: 10px 0 0;
+  color: var(--text-1);
+  font-size: 14px;
+}
+
+.quick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 58px;
+  padding: 0 10px 0 20px;
+  border-radius: var(--radius-l);
+  background: var(--surface-1);
+  box-shadow:
+    inset 0 0 0 1px var(--line-strong),
+    0 20px 50px -30px rgba(0, 0, 0, 0.8);
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.quick:focus-within {
+  box-shadow:
+    inset 0 0 0 1px var(--accent-line),
+    0 0 0 4px var(--accent-soft),
+    0 20px 50px -30px rgba(0, 0, 0, 0.8);
+}
+
+.quick .prompt {
+  font: 600 18px var(--font-mono);
+  color: var(--accent-fg);
+}
+
+.quick input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: 16px var(--font-mono);
+}
+
+.quick input::placeholder {
+  color: var(--text-3);
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-m);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--line);
+  text-align: left;
+  transition:
+    transform var(--normal) var(--ease),
+    box-shadow var(--normal) var(--ease),
+    background var(--normal) var(--ease);
+}
+
+.card:hover {
+  transform: translate(-2px, -2px);
+  background: var(--surface-2);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--mono-color, var(--accent)) 40%, transparent),
+    4px 4px 0 var(--hard-shadow);
+}
+
+.card .monogram {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.card .when {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font: 10px var(--font-mono);
+  color: var(--text-3);
+}
+
+.shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px 24px;
+  font-size: 12px;
+  color: var(--text-1);
+}
+
+.shortcuts div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.shortcuts .keys {
+  display: flex;
+  gap: 3px;
+}
+
+/* ───────────── Settings ───────────── */
+.settings {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  min-height: 460px;
+}
+
+.settings-nav {
+  padding: 8px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: color-mix(in oklab, var(--surface-0) 50%, transparent);
+}
+
+.settings-nav button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-s);
+  color: var(--text-1);
+  font-size: 12.5px;
+  font-weight: 550;
+  text-align: left;
+}
+
+.settings-nav button:hover {
+  background: var(--hover);
+  color: var(--text-0);
+}
+
+.settings-nav button.on {
+  background: var(--accent-soft);
+  color: var(--text-0);
+}
+
+.settings-nav button.on svg {
+  color: var(--accent-fg);
+}
+
+.settings-pane {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  max-height: 64vh;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.theme-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 11.5px;
+  text-align: left;
+}
+
+.theme-chip.on {
+  box-shadow:
+    inset 0 0 0 1px var(--accent-line),
+    0 0 0 3px var(--accent-soft);
+}
+
+.theme-chip .preview {
+  height: 44px;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: 10px/1.35 var(--font-mono);
+  overflow: hidden;
+}
+
+.about {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.about .pixel {
+  margin-left: -6px;
+}
+
+/* ───────────── SFTP v2: breadcrumbs, search, sort, status, resize ───────────── */
+.sftp-path .crumbs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.sftp-path .crumbs::-webkit-scrollbar {
+  display: none;
+}
+
+.crumb-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.crumb {
+  padding: 2px 4px;
+  border-radius: 4px;
+  font: 11.5px var(--font-mono);
+  color: var(--text-1);
+}
+
+.crumb:hover {
+  background: var(--hover);
+  color: var(--text-0);
+}
+
+.crumb.last {
+  color: var(--text-0);
+  font-weight: 600;
+}
+
+.crumb-sep {
+  color: var(--text-3);
+  flex: none;
+}
+
+.sftp-search {
+  margin: 0 8px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 4px 0 9px;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text-2);
+}
+
+.sftp-search:focus-within {
+  box-shadow:
+    inset 0 0 0 1px var(--accent-line),
+    0 0 0 3px var(--accent-soft);
+}
+
+.sftp-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-0);
+}
+
+.search-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 8px 4px;
+  padding: 4px 4px 4px 10px;
+  border-radius: var(--radius-s);
+  background: var(--accent-soft);
+  font-size: 11.5px;
+  color: var(--text-0);
+}
+
+.search-banner span {
+  flex: 1;
+}
+
+.sftp-cols button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  color: var(--text-2);
+  justify-content: flex-end;
+}
+
+.sftp-cols button:first-child {
+  justify-content: flex-start;
+}
+
+.sftp-cols button:hover,
+.sftp-cols button.on {
+  color: var(--text-0);
+}
+
+.sftp-cols {
+  margin: 0 -6px 2px;
+  padding: 4px 14px;
+}
+
+.file-name svg.code {
+  color: var(--violet);
+}
+
+.search-hit {
+  grid-template-columns: 1fr;
+}
+
+.hit-dir {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.sftp-status {
+  padding: 5px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 10.5px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sftp-status .sel-info {
+  color: var(--accent-fg);
+}
+
+.sftp-resize {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 6;
+}
+
+.sftp-resize:hover,
+.sftp-resize:active {
+  background: linear-gradient(90deg, transparent 2px, var(--accent-line) 2px, var(--accent-line) 4px, transparent 4px);
+}
+
+/* ───────────── Remote file editor ───────────── */
+.editor-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  padding: 28px;
+  background: var(--overlay);
+  backdrop-filter: blur(6px);
+  animation: fade-in var(--normal) var(--ease);
+}
+
+.editor-window {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-l);
+  background: var(--surface-0);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  animation: pop-in var(--normal) var(--ease);
+}
+
+.editor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  padding: 0 10px 0 16px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--line);
+}
+
+.editor-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+.dirty-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--warn) 20%, transparent);
+}
+
+.editor-path {
+  flex: 1;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+
+.editor-chip {
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--text-1);
+  background: var(--surface-3);
+  white-space: nowrap;
+}
+
+.editor-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-body .cm-editor {
+  height: 100%;
+}
+
+.editor-body .cm-editor.cm-focused {
+  outline: none;
+}
+
+.editor-foot {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 28px;
+  padding: 0 16px;
+  font-size: 11px;
+  color: var(--text-2);
+  background: var(--surface-1);
+  border-top: 1px solid var(--line);
+}
+
+.sftp-list > .sftp-cols {
+  position: sticky;
+  top: -4px;
+  z-index: 1;
+  background: var(--surface-1);
+}
+
+/* 90s touches on the welcome screen */
+.welcome-mark {
+  display: block;
+  margin: 0 0 18px -4px;
+}
+
+.cursor-block {
+  display: inline-block;
+  width: 0.42em;
+  height: 0.82em;
+  margin-left: 0.14em;
+  vertical-align: -0.04em;
+  background: var(--accent);
+  animation: block-blink 1.1s steps(1) infinite;
+}
+
+@keyframes block-blink {
+  50% {
+    opacity: 0;
+  }
+}
