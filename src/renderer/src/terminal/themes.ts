@@ -173,6 +173,34 @@ export const TERMINAL_THEMES: TerminalTheme[] = [
     }
   },
   {
+    id: 'mobaxterm',
+    name: 'MobaXterm',
+    dark: true,
+    theme: {
+      background: '#1d1d1d',
+      foreground: '#dcdcdc',
+      cursor: '#dcdcdc',
+      cursorAccent: '#1d1d1d',
+      selectionBackground: '#3d5f8f',
+      black: '#000000',
+      red: '#ff5c57',
+      green: '#3ed63e',
+      yellow: '#e5e510',
+      blue: '#3d8bff',
+      magenta: '#ff4fd8',
+      cyan: '#1fc7d4',
+      white: '#d0d0d0',
+      brightBlack: '#7f7f7f',
+      brightRed: '#ff7b7b',
+      brightGreen: '#5df35d',
+      brightYellow: '#ffff55',
+      brightBlue: '#6fa8ff',
+      brightMagenta: '#ff7ae6',
+      brightCyan: '#5ee6f0',
+      brightWhite: '#ffffff'
+    }
+  },
+  {
     id: 'dos',
     name: 'MS-DOS',
     dark: true,

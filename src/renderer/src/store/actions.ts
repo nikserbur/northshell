@@ -1,4 +1,6 @@
 import { LOCAL_MONITOR_ID, type OpenTarget, type QuickTarget, type SessionConfig } from '@shared/types'
+import { buildBanner } from '@shared/banner'
+import { APP_NAME } from '@shared/brand'
 import { makeT } from '../lib/i18n'
 import { registry } from '../terminal/registry'
 import { useApp, type Tab } from './appStore'
@@ -99,8 +101,29 @@ function notifyDownloadsFinished(tabId: string, localPath: string): void {
   })
 }
 
+let appVersion = ''
+
+function printBanner(tab: Tab, endpoint: string | undefined): void {
+  const store = useApp.getState()
+  if (!store.settings.terminalBanner || tab.kind !== 'ssh') return
+  const session = tab.sessionId ? store.sessions.find((s) => s.id === tab.sessionId) : undefined
+  registry.write(
+    tab.id,
+    buildBanner({
+      app: APP_NAME,
+      version: appVersion,
+      target: endpoint ?? tab.endpoint ?? tab.title,
+      sftp: tab.sftpEnabled,
+      monitoring: store.settings.monitorEnabled && (session?.monitoring ?? true)
+    })
+  )
+}
+
 /** Subscribes to all main-process events. Returns an unsubscribe function. */
 export function bindIpc(): () => void {
+  void api()
+    .app.info()
+    .then((info) => (appVersion = info.version))
   const offs = [
     api().term.onData((tabId, data) => registry.write(tabId, data)),
     api().term.onStatus((ev) => {
@@ -110,6 +133,7 @@ export function bindIpc(): () => void {
       const patch: Partial<Tab> = { status: ev.status, message: ev.message, endpoint: ev.endpoint ?? tab.endpoint }
       if (ev.status === 'connected') {
         patch.connectedAt = Date.now()
+        printBanner(tab, ev.endpoint)
         if (tab.kind === 'local' && ev.endpoint) patch.title = ev.endpoint.split('/').pop() || tab.title
       }
       if (ev.status === 'connecting' && ev.endpoint && tab.kind === 'ssh') {

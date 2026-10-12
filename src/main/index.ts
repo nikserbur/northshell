@@ -61,9 +61,9 @@ function createWindow(settings: SettingsStore): BrowserWindow {
 
 const ALLOWED_PERMISSIONS = new Set(['clipboard-read', 'clipboard-sanitized-write'])
 
-/** Electron only knows light/dark/system: Visual Studio is dark, Windows 95 is light. */
+/** Electron only knows light/dark/system: Visual Studio and MobaXterm are dark, Windows 95 is light. */
 function nativeSource(theme: UiTheme): 'light' | 'dark' | 'system' {
-  if (theme === 'vs') return 'dark'
+  if (theme === 'vs' || theme === 'moba') return 'dark'
   return theme === 'retro' ? 'light' : theme
 }
 

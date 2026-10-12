@@ -30,7 +30,9 @@
 
 **Server monitoring** — a MobaXterm-like status bar (CPU, RAM, disk, network ↓/↑, load, uptime, users) and a monitor drawer (`⇧⌘M`) with CPU/memory/network sparklines, all disks, swap, top processes and OS info. Agentless: stats are read over the same SSH connection from `/proc` (Linux) or `sysctl`/`vm_stat` (macOS).
 
-**UI & themes** — five themes: dark, light, system, **Visual Studio** (VS 2019 Dark look: blue active tab, orange status bar, VS syntax colours) and an old-school **Windows 95** theme (silver bevels, navy title bars, teal desktop, Task-Manager graphs); 8 terminal colour schemes; hover tooltips with shortcuts on every button; **drag-to-resize** sessions and SFTP panels; a 90s pixel-art icon; command palette (`⌘P`); Russian and English UI.
+**MobaXterm-style output** — highlighting of IPs, links, error / warning / ok keywords and command flags (paused inside full-screen apps), plus an info box when a session connects.
+
+**UI & themes** — six themes: dark, light, system, **Visual Studio** (VS 2019 Dark look), **MobaXterm** (dark Windows chrome, rounded session tabs, Moba-style monitoring bar with a mini CPU graph, every disk and logged-in users) and an old-school **Windows 95** theme (silver bevels, navy title bars, teal desktop, Task-Manager graphs); 9 terminal colour schemes; an adaptive status bar that hides low-priority cells instead of clipping; hover tooltips with shortcuts on every button; **drag-to-resize** sessions and SFTP panels; a 90s pixel-art icon; command palette (`⌘P`); Russian and English UI.
 
 <details>
 <summary><b>📸 More screenshots</b></summary>
@@ -40,6 +42,8 @@
 | ![Welcome](docs/screenshots/welcome.png) | ![Editor](docs/screenshots/editor.png) |
 | **Server search** | **Light theme** |
 | ![Search](docs/screenshots/sftp-search.png) | ![Light](docs/screenshots/light.png) |
+| **MobaXterm theme** | |
+| ![MobaXterm](docs/screenshots/theme-moba.png) | |
 | **Visual Studio theme** | **Windows 95 theme** |
 | ![Visual Studio](docs/screenshots/theme-vs.png) | ![Windows 95](docs/screenshots/theme-retro.png) |
 
@@ -50,7 +54,7 @@
 
 | File | Platform |
 |---|---|
-| [**download/Termora-1.1.1-arm64.dmg**](download/) | macOS 13+ · Apple Silicon |
+| [**download/Termora-1.2.0-arm64.dmg**](download/) | macOS 13+ · Apple Silicon |
 
 The same DMG is attached to the [latest release](../../releases/latest).
 

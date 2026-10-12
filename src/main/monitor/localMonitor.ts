@@ -91,6 +91,7 @@ export class LocalMonitor {
         netTx: net.reduce((a, n) => a + Math.max(0, n.tx_sec ?? 0), 0),
         uptime: uptime(),
         users: new Set(users.map((u) => u.user)).size,
+        userNames: [...new Set(users.map((u) => u.user))].sort(),
         processes
       })
     } catch (err) {

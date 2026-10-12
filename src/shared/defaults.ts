@@ -13,6 +13,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   scrollback: 10000,
   copyOnSelect: false,
   rightClickPaste: true,
+  terminalBanner: false,
+  outputHighlight: false,
   localShell: '',
   keepaliveInterval: 30,
   connectTimeout: 20,

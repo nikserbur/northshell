@@ -41,7 +41,7 @@ export function remoteMonitorCommand(intervalSec: number): string {
     ...LINUX_PROBE,
     'fi',
     'echo @@df; df -kP 2>/dev/null',
-    'echo @@users; who 2>/dev/null | wc -l',
+    'echo @@users; who 2>/dev/null | cut -d" " -f1 | sort -u',
     'echo @@XMT_END',
     `sleep ${interval}`,
     'done'

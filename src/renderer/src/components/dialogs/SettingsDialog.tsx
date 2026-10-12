@@ -44,6 +44,11 @@ const UI_THEMES: { id: UiTheme; label: I18nKey; preview: ThemePreview }[] = [
     preview: { top: '#2d2d30', side: '#252526', body: '#1e1e1e', accent: '#007acc', status: '#ca5100' }
   },
   {
+    id: 'moba',
+    label: 'themeMoba',
+    preview: { top: '#333333', side: '#262626', body: '#1d1d1d', accent: '#3d8bff', status: 'repeating-linear-gradient(90deg, #202020 0 14px, #3ed63e 14px 16px)' }
+  },
+  {
     id: 'retro',
     label: 'themeRetro',
     preview: { top: 'linear-gradient(90deg, #000080, #1084d0)', side: '#c0c0c0', body: '#008080', accent: '#c0c0c0', status: '#c0c0c0' }
@@ -51,7 +56,7 @@ const UI_THEMES: { id: UiTheme; label: I18nKey; preview: ThemePreview }[] = [
 ]
 
 /** Terminal colour scheme that goes with each branded UI theme. */
-const BRANDED_TERMINAL: Partial<Record<UiTheme, string>> = { vs: 'visual-studio', retro: 'dos' }
+const BRANDED_TERMINAL: Partial<Record<UiTheme, string>> = { vs: 'visual-studio', retro: 'dos', moba: 'mobaxterm' }
 
 const FONTS = ['JetBrains Mono', 'SF Mono', 'Menlo', 'Monaco', 'Fira Code', 'Cascadia Code']
 
@@ -136,9 +141,11 @@ export function SettingsDialog() {
     const branded = BRANDED_TERMINAL[theme]
     const leavingBranded = Object.values(BRANDED_TERMINAL).includes(settings.terminalTheme)
     const terminalTheme = branded ?? (leavingBranded ? (theme === 'light' ? 'paper' : 'moda-night') : settings.terminalTheme)
-    update({ uiTheme: theme, terminalTheme })
+    // MobaXterm logic comes with its look: session info box and output highlighting.
+    const mobaLogic = theme === 'moba' ? { terminalBanner: true, outputHighlight: true } : settings.uiTheme === 'moba' ? { terminalBanner: false, outputHighlight: false } : {}
+    update({ uiTheme: theme, terminalTheme, ...mobaLogic })
   }
-  const fixedPalette = settings.uiTheme === 'vs' || settings.uiTheme === 'retro'
+  const fixedPalette = settings.uiTheme === 'vs' || settings.uiTheme === 'retro' || settings.uiTheme === 'moba'
 
   const appearance = (
     <>
@@ -237,6 +244,8 @@ export function SettingsDialog() {
         <Switch on={settings.cursorBlink} onChange={(v) => update({ cursorBlink: v })} label={t('cursorBlink')} />
         <Switch on={settings.copyOnSelect} onChange={(v) => update({ copyOnSelect: v })} label={t('copyOnSelect')} />
         <Switch on={settings.rightClickPaste} onChange={(v) => update({ rightClickPaste: v })} label={t('rightClickPaste')} />
+        <Switch on={settings.terminalBanner} onChange={(v) => update({ terminalBanner: v })} label={t('terminalBanner')} hint={t('terminalBannerHint')} />
+        <Switch on={settings.outputHighlight} onChange={(v) => update({ outputHighlight: v })} label={t('outputHighlight')} hint={t('outputHighlightHint')} />
       </div>
       <TextField label={t('localShell')} value={settings.localShell} placeholder="/bin/zsh" hint={t('localShellHint')} onCommit={(v) => update({ localShell: v })} />
     </>

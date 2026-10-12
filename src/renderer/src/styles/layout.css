@@ -461,18 +461,6 @@
   color: inherit;
 }
 
-@container main (max-width: 1240px) {
-  .sb-opt2 {
-    display: none;
-  }
-}
-
-@container main (max-width: 1080px) {
-  .sb-opt {
-    display: none;
-  }
-}
-
 @container main (max-width: 900px) {
   .sb-toggle-label {
     display: none;
@@ -510,4 +498,65 @@ body.resizing,
 body.resizing * {
   cursor: col-resize !important;
   user-select: none;
+}
+
+/* Status bar row: segments hide by priority (useFitPriority), the toggle never moves off-screen */
+.sb-segs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.sb-segs > [hidden] {
+  display: none !important;
+}
+
+.sb-host-seg {
+  flex: 0 1 auto !important;
+  min-width: 72px;
+}
+
+.sb-seg .value.crit,
+.sb-disk.crit {
+  color: var(--danger);
+  font-weight: 650;
+}
+
+/* MobaXterm-style extras are hidden unless the theme asks for them */
+.sb-cpu-graph,
+.sb-disks-all,
+.sb-users-names {
+  display: none;
+}
+
+.sb-disks-all {
+  gap: 10px;
+}
+
+/* Narrow side panels collapse button captions to icons (captions stay in tooltips) */
+.sidebar {
+  container: sidebar / inline-size;
+}
+
+.sftp {
+  container: sftp / inline-size;
+}
+
+@container sidebar (max-width: 250px) {
+  .sidebar-footer .btn-label {
+    display: none;
+  }
+}
+
+@container sftp (max-width: 300px) {
+  .sftp-head .title-text {
+    display: none;
+  }
+
+  .sftp-head {
+    gap: 0;
+    padding-left: 8px;
+  }
 }

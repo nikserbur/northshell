@@ -272,7 +272,7 @@ export function SftpPanel({ tab }: { tab: Tab }) {
     >
       <div className="sftp-head">
         <span className="title">
-          <HardDriveDownload size={13} /> {t('sftp')}
+          <HardDriveDownload size={13} /> <span className="title-text">{t('sftp')}</span>
           {(loading || searching) && <Loader2 size={12} className="spin" />}
         </span>
         <button className="icon-btn sm" title={t('up')} onClick={() => path && navigate(parentOf(path))}>

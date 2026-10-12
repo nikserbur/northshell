@@ -38,7 +38,7 @@ export interface SessionInput {
   clearSecret?: boolean
 }
 
-export type UiTheme = 'dark' | 'light' | 'system' | 'vs' | 'retro'
+export type UiTheme = 'dark' | 'light' | 'system' | 'vs' | 'retro' | 'moba'
 export type CursorStyle = 'block' | 'bar' | 'underline'
 export type Language = 'ru' | 'en'
 
@@ -55,6 +55,10 @@ export interface AppSettings {
   scrollback: number
   copyOnSelect: boolean
   rightClickPaste: boolean
+  /** MobaXterm-style info box printed when an SSH session connects. */
+  terminalBanner: boolean
+  /** MobaXterm-style colouring of IPs, URLs and keywords in terminal output. */
+  outputHighlight: boolean
   localShell: string
   keepaliveInterval: number
   connectTimeout: number
@@ -119,6 +123,7 @@ export interface MonitorSnapshot {
   netTx: number
   uptime: number
   users: number
+  userNames: string[]
   processes: ProcessInfo[]
 }
 

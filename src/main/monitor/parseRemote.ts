@@ -23,6 +23,7 @@ export interface RawSample {
   netTx: number
   disks: DiskUsage[]
   users: number
+  userNames: string[]
   processes: ProcessInfo[]
 }
 
@@ -131,6 +132,9 @@ export function parseRemoteBlock(block: string): RawSample {
   const get = (key: string): string[] => s.get(key) ?? []
   const uname = (get('uname')[0] ?? '').trim().split(/\s+/)
   const load = (get('loadavg')[0] ?? '').match(/\d+(?:\.\d+)?/g)?.map(Number) ?? []
+  const userNames = get('users')
+    .map((l) => l.trim())
+    .filter((l) => /^[\w.@-]+$/.test(l))
   const net = s.has('netstat') ? parseNetstat(get('netstat')) : parseNet(get('net'))
   const memory = s.has('memsize') ? parseDarwinMemory(get('memsize'), get('vmstat'), get('swap')) : parseMeminfo(get('meminfo'))
   return {
@@ -145,7 +149,8 @@ export function parseRemoteBlock(block: string): RawSample {
     netRx: net.rx,
     netTx: net.tx,
     disks: parseDf(get('df')),
-    users: num(get('users')[0]?.trim()),
+    users: userNames.length,
+    userNames,
     processes: parsePs(get('ps'))
   }
 }
@@ -196,6 +201,7 @@ export class StatsTracker {
       netTx,
       uptime: raw.uptime,
       users: raw.users,
+      userNames: raw.userNames,
       processes: raw.processes
     }
   }

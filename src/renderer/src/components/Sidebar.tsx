@@ -197,10 +197,10 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
 
       <div className="sidebar-footer">
         <button className="btn sm" onClick={() => openLocal()} title={`${t('localTerminal')} ⌘T`}>
-          <SquareTerminal size={14} /> {t('localTerminal').split(' ')[0]}
+          <SquareTerminal size={14} /> <span className="btn-label">{t('localTerminal').split(' ')[0]}</span>
         </button>
         <button className="btn sm" onClick={() => void importConfig()} title={t('importSshConfig')}>
-          <Download size={14} /> ssh config
+          <Download size={14} /> <span className="btn-label">ssh config</span>
         </button>
       </div>
 

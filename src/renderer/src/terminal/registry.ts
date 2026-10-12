@@ -4,6 +4,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { Terminal, type ITerminalOptions } from '@xterm/xterm'
+import { OutputHighlighter } from '@shared/highlight'
 import type { AppSettings } from '@shared/types'
 import { getTerminalTheme } from './themes'
 
@@ -16,6 +17,8 @@ export interface TermEntry {
   needsConnect: boolean
   bytesIn: number
   bytesOut: number
+  /** Present while MobaXterm-style output highlighting is on. */
+  highlight: { decoder: TextDecoder; hl: OutputHighlighter } | null
 }
 
 type InputHandler = (tabId: string, data: string) => void
@@ -24,6 +27,7 @@ const MAX_WEBGL = 12
 const entries = new Map<string, TermEntry>()
 let inputHandler: InputHandler = () => undefined
 let webglCount = 0
+let highlightOn = false
 
 function optionsFrom(s: AppSettings): ITerminalOptions {
   return {
@@ -62,7 +66,7 @@ export const registry = {
         if (event.metaKey) void window.xmt.app.openExternal(uri)
       })
     )
-    const entry: TermEntry = { term, fit, search, opened: false, webgl: false, needsConnect: true, bytesIn: 0, bytesOut: 0 }
+    const entry: TermEntry = { term, fit, search, opened: false, webgl: false, needsConnect: true, bytesIn: 0, bytesOut: 0, highlight: null }
     const send = (data: string): void => {
       entry.bytesOut += data.length
       inputHandler(tabId, data)
@@ -104,8 +108,24 @@ export const registry = {
   write(tabId: string, data: Uint8Array | string): void {
     const entry = entries.get(tabId)
     if (!entry) return
-    if (typeof data !== 'string') entry.bytesIn += data.length
-    entry.term.write(data)
+    if (typeof data === 'string') return entry.term.write(data)
+    entry.bytesIn += data.length
+    if (!highlightOn) return entry.term.write(data)
+    entry.highlight ??= { decoder: new TextDecoder('utf-8'), hl: new OutputHighlighter() }
+    entry.term.write(entry.highlight.hl.push(entry.highlight.decoder.decode(data, { stream: true })))
+  },
+
+  /** Turns MobaXterm-style output highlighting on or off for all terminals. */
+  setHighlight(on: boolean): void {
+    if (on === highlightOn) return
+    highlightOn = on
+    if (on) return
+    for (const entry of entries.values()) {
+      if (!entry.highlight) continue
+      const rest = entry.highlight.decoder.decode() + entry.highlight.hl.flush()
+      if (rest) entry.term.write(rest)
+      entry.highlight = null
+    }
   },
 
   fit(tabId: string): void {

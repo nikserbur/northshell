@@ -51,7 +51,13 @@ const sessions = [
   session('staging-api', 'staging', 'staging.example.com', 'deploy', '#fbbf24', { lastUsedAt: now - 86_400_000 }),
   session('k8s-node-1', 'staging', '10.1.0.11', 'ops', '#60a5fa'),
   session('bastion', 'infra', 'bastion.example.com', 'ops', '#f472b6', { lastUsedAt: now - 172_800_000 }),
-  session('raspberry-pi', 'home lab', '192.168.1.50', 'pi', '#4ade80')
+  session('raspberry-pi', 'home lab', '192.168.1.50', 'pi', '#4ade80'),
+  session('web-03', 'production', env.XMT_E2E_SSH_HOST, env.XMT_E2E_SSH_USER, '#fbbf24', {
+    port: Number(env.XMT_E2E_SSH_PORT ?? 22),
+    auth: 'key',
+    keyPath: env.XMT_E2E_SSH_KEY,
+    startupCommand: `cd '${demoDir}' && export PS1='deploy@web-03:~$ ' PROMPT='deploy@web-03:~$ ' && clear && cat .motd`
+  })
 ]
 writeFileSync(join(dataDir, 'sessions.json'), JSON.stringify({ version: 1, sessions }))
 const hostKey = readFileSync(`${env.XMT_E2E_SSH_KEY.replace(/user_ed25519$/, 'host_ed25519')}.pub`, 'utf8').split(' ')[1]
@@ -185,6 +191,22 @@ for (const [label, name] of [
     await page.click('.editor-head .icon-btn')
   }
 }
+
+// MobaXterm theme: info box + output highlighting on a fresh session
+await page.click('.titlebar-actions .icon-btn:nth-child(4)')
+await page.waitForSelector('.settings')
+await page.click('.ui-theme-card:has-text("MobaXterm")')
+await page.keyboard.press('Escape')
+await page.dblclick('.session-row:has-text("web-03")')
+await page.waitForSelector('.tab.active .dot.connected', { timeout: 20000 })
+await page.waitForSelector('.sftp .crumb', { timeout: 10000 })
+await page.click('.sftp-path .icon-btn')
+await page.fill('.sftp-path input', demoDir)
+await page.press('.sftp-path input', 'Enter')
+await page.waitForSelector('.file-row:has-text("docker-compose.yml")', { timeout: 10000 })
+await page.waitForTimeout(8000)
+await page.click('.term-host.active')
+await shot('theme-moba')
 
 await app.close()
 console.log(`screenshots → ${out}`)

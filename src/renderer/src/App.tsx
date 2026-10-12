@@ -26,7 +26,7 @@ function inkFor(hex: string): string {
 }
 
 /** Branded themes ship their own palette, so the user accent is not applied to them. */
-const FIXED_PALETTE_THEMES = new Set(['vs', 'retro'])
+const FIXED_PALETTE_THEMES = new Set(['vs', 'retro', 'moba'])
 
 function applyTheme(settings: AppSettings): void {
   const root = document.documentElement
@@ -72,6 +72,10 @@ export function App() {
     })
     return off
   }, [])
+
+  useEffect(() => {
+    registry.setHighlight(settings.outputHighlight)
+  }, [settings.outputHighlight])
 
   useEffect(() => {
     if (!ready) return

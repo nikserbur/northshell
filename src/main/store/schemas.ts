@@ -21,7 +21,7 @@ export const sessionInputSchema = z.object({
 
 export const settingsShape = z.object({
     language: z.enum(['ru', 'en']),
-    uiTheme: z.enum(['dark', 'light', 'system', 'vs', 'retro']),
+    uiTheme: z.enum(['dark', 'light', 'system', 'vs', 'retro', 'moba']),
     accent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     terminalTheme: z.string().max(40),
     fontFamily: z.string().max(80),
@@ -32,6 +32,8 @@ export const settingsShape = z.object({
     scrollback: z.number().int().min(100).max(200000),
     copyOnSelect: z.boolean(),
     rightClickPaste: z.boolean(),
+    terminalBanner: z.boolean(),
+    outputHighlight: z.boolean(),
     localShell: z.string().max(512),
     keepaliveInterval: z.number().int().min(0).max(600),
     connectTimeout: z.number().int().min(3).max(120),

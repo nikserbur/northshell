@@ -32,7 +32,8 @@ tmpfs              4000000        0   4000000       0% /dev/shm
 /dev/sdb1        103081248 50000000  48000000      51% /data/my disk
 /dev/sda1         51290592 20000000  28000000      42% /var/lib/docker
 @@users
-2
+deploy
+root
 @@ps
     812  25.0  3.1 node
      77   2.5  0.4 nginx: worker
@@ -48,6 +49,7 @@ describe('parseRemoteBlock', () => {
     expect(raw.uptime).toBeCloseTo(93784.12)
     expect(raw.load).toEqual([0.52, 0.4, 0.31])
     expect(raw.users).toBe(2)
+    expect(raw.userNames).toEqual(['deploy', 'root'])
   })
 
   it('reads memory in bytes using MemAvailable', () => {
@@ -175,7 +177,7 @@ map auto_home            0         0         0   100%    /System/Volumes/Data/ho
 /dev/disk9s1        200000     10000    190000     5%    /private/var/folders/xx/cryptex
 /dev/disk5s1      61202432  20000000  41202432    33%    /Volumes/USB Stick
 @@users
-1
+admin
 @@ps
   412  12.0  1.5 WindowServer
 `

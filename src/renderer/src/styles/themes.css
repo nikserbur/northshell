@@ -631,3 +631,215 @@
   background: #555555;
   box-shadow: none;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   Theme: MobaXterm — dark Windows-style chrome, rounded session tabs,
+   and the remote-monitoring bar: sunken cells with colour icons, a mini
+   CPU graph, every disk with its usage (red when nearly full) and users.
+   ════════════════════════════════════════════════════════════════════ */
+:root[data-theme='moba'] {
+  color-scheme: dark;
+  --font-ui: Tahoma, 'Segoe UI', Verdana, sans-serif;
+  --accent: #3d8bff;
+  --accent-ink: #ffffff;
+  --accent-fg: #5fa0ff;
+  --accent-soft: rgba(61, 139, 255, 0.24);
+  --accent-line: #3d8bff;
+  --accent-glow: transparent;
+
+  --chrome: #2b2b2b;
+  --chrome-solid: #333333;
+  --surface-0: #1d1d1d;
+  --surface-1: #262626;
+  --surface-2: #323232;
+  --surface-3: #3c3c3c;
+  --hover: rgba(255, 255, 255, 0.07);
+  --press: rgba(255, 255, 255, 0.12);
+  --overlay: rgba(0, 0, 0, 0.5);
+  --line: #3a3a3a;
+  --line-strong: #4a4a4a;
+  --text-0: #e6e6e6;
+  --text-1: #c8c8c8;
+  --text-2: #9a9a9a;
+  --text-3: #6e6e6e;
+  --ok: #3ed63e;
+  --warn: #e5c33a;
+  --danger: #ff5c57;
+  --info: #3d8bff;
+  --violet: #ff4fd8;
+
+  --radius-xs: 2px;
+  --radius-s: 3px;
+  --radius-m: 3px;
+  --radius-l: 4px;
+  --radius-xl: 4px;
+  --shadow-pop: 0 0 0 1px #4a4a4a, 0 10px 28px rgba(0, 0, 0, 0.6);
+  --hard-shadow: transparent;
+  --grid-line: rgba(62, 214, 62, 0.12);
+  --tooltip-bg: #3c3c3c;
+  --tooltip-fg: #f0f0f0;
+  --spark-1: #3ed63e;
+  --spark-2: #ff4fd8;
+  --spark-3: #3d8bff;
+  --sunken-cell: inset 1px 1px #0b0b0b, inset -1px -1px #444444;
+
+  --syn-keyword: #5fa0ff;
+  --syn-string: #3ed63e;
+  --syn-number: #ff4fd8;
+  --syn-comment: #7f7f7f;
+  --syn-function: #ffd75f;
+  --syn-type: #1fc7d4;
+  --syn-property: #5ee6f0;
+  --syn-tag: #ff7b7b;
+}
+
+:root[data-theme='moba'] body {
+  font-size: 12px;
+}
+
+/* Session tabs: rounded on top, active tab merges into the terminal */
+:root[data-theme='moba'] .titlebar {
+  background: #333333;
+  border-bottom: 1px solid #1d1d1d;
+}
+
+:root[data-theme='moba'] .tab {
+  height: 30px;
+  align-self: flex-end;
+  border-radius: 5px 5px 0 0;
+  background: #2b2b2b;
+  box-shadow: inset 0 0 0 1px #444444;
+}
+
+:root[data-theme='moba'] .tab.active {
+  background: #1d1d1d;
+  box-shadow:
+    inset 1px 0 #555555,
+    inset -1px 0 #555555,
+    inset 0 1px #555555;
+}
+
+:root[data-theme='moba'] .tab.active::before {
+  display: none;
+}
+
+:root[data-theme='moba'] .tabs > .icon-btn {
+  align-self: flex-end;
+  height: 30px;
+}
+
+:root[data-theme='moba'] .sidebar {
+  background: #262626;
+}
+
+:root[data-theme='moba'] .welcome {
+  background: #1d1d1d;
+}
+
+:root[data-theme='moba'] .welcome h1 span {
+  background: none;
+  color: #3d8bff;
+}
+
+:root[data-theme='moba'] .welcome .card:hover {
+  transform: none;
+  box-shadow: inset 0 0 0 1px #3d8bff;
+}
+
+:root[data-theme='moba'] .btn.primary {
+  box-shadow: none;
+}
+
+:root[data-theme='moba'] .btn.primary:active {
+  transform: none;
+}
+
+/* Remote-monitoring bar */
+:root[data-theme='moba'] .statusbar {
+  height: 28px;
+  background: #202020;
+  border-top: 1px solid #3a3a3a;
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
+:root[data-theme='moba'] .sb-seg {
+  margin: 2px 1px;
+  padding: 0 8px;
+  border-right: 0;
+  box-shadow: var(--sunken-cell);
+}
+
+:root[data-theme='moba'] .sb-toggle {
+  margin: 2px;
+  border-left: 0;
+  box-shadow: var(--sunken-cell);
+}
+
+:root[data-theme='moba'] .statusbar .meter,
+:root[data-theme='moba'] .sb-disk-root,
+:root[data-theme='moba'] .sb-users-count {
+  display: none;
+}
+
+:root[data-theme='moba'] .sb-cpu-graph {
+  display: block;
+  width: 40px;
+  height: 16px;
+  background: #000000;
+  box-shadow: inset 0 0 0 1px #3a3a3a;
+  fill: #3ed63e;
+}
+
+:root[data-theme='moba'] .sb-disks-all,
+:root[data-theme='moba'] .sb-users-names {
+  display: flex;
+}
+
+:root[data-theme='moba'] .sb-users-names {
+  display: inline-block;
+  max-width: 220px;
+}
+
+:root[data-theme='moba'] .sb-host-seg svg,
+:root[data-theme='moba'] .sb-users svg {
+  color: #f0a030;
+}
+
+:root[data-theme='moba'] .sb-cpu svg,
+:root[data-theme='moba'] .sb-mem svg {
+  color: #3ed63e;
+}
+
+:root[data-theme='moba'] .sb-net .rx {
+  color: #3d8bff;
+}
+
+:root[data-theme='moba'] .sb-net .tx {
+  color: #2fd3a0;
+}
+
+:root[data-theme='moba'] .sb-uptime svg {
+  color: #5ec8f0;
+}
+
+:root[data-theme='moba'] .sb-disks-all svg {
+  color: #c8c8c8;
+}
+
+:root[data-theme='moba'] .sb-seg .value,
+:root[data-theme='moba'] .sb-disk,
+:root[data-theme='moba'] .sb-host {
+  font-family: var(--font-ui);
+  color: #f0f0f0;
+}
+
+:root[data-theme='moba'] .sb-disk.crit {
+  color: #ff5c57;
+}
+
+/* Code editor */
+:root[data-theme='moba'] .editor-body .cm-gutters {
+  color: #7f7f7f;
+  background: #1d1d1d;
+}
