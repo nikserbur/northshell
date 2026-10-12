@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, nativeTheme, safeStorage, session, shell } from 'electron'
-import { APP_NAME } from '@shared/brand'
+import { APP_NAME, LEGACY_APP_NAMES } from '@shared/brand'
 import { IPC } from '@shared/ipc'
 import { LOCAL_MONITOR_ID, type UiTheme } from '@shared/types'
 import { registerIpc } from './ipc'
@@ -9,6 +9,7 @@ import { LocalMonitor } from './monitor/localMonitor'
 import { PromptBroker } from './prompts'
 import { SftpService } from './sftp/sftpService'
 import { KnownHostsStore } from './store/knownHosts'
+import { migrateLegacyData } from './store/migrate'
 import { SessionStore } from './store/sessionStore'
 import { SettingsStore } from './store/settingsStore'
 import { TerminalService } from './terminals'
@@ -73,6 +74,13 @@ void app.whenReady().then(() => {
   )
   session.defaultSession.setPermissionCheckHandler((_wc, permission) => ALLOWED_PERMISSIONS.has(permission))
   const dataDir = app.getPath('userData')
+  // Import sessions from an earlier product name, only for the real (default) profile.
+  if (dataDir === join(app.getPath('appData'), APP_NAME)) {
+    migrateLegacyData(
+      LEGACY_APP_NAMES.map((name) => join(app.getPath('appData'), name)),
+      dataDir
+    )
+  }
   const settings = new SettingsStore(join(dataDir, 'settings.json'))
   const sessions = new SessionStore(join(dataDir, 'sessions.json'), {
     isAvailable: () => safeStorage.isEncryptionAvailable(),

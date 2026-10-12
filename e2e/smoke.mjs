@@ -52,7 +52,7 @@ async function waitForFile(path, expected, timeout = 10000) {
   throw new Error(`${path} did not contain ${expected}`)
 }
 
-console.log('Termora E2E')
+console.log('Northshell E2E')
 
 await step('welcome screen renders', async () => {
   await page.waitForSelector('.welcome h1', { timeout: 15000 })

@@ -1,16 +1,20 @@
 <div align="center">
 
-<img src="docs/icon.png" width="112" height="112" alt="Termora" />
+<img src="docs/icon.png" width="112" height="112" alt="Northshell" />
 
-# Termora
+# Northshell
 
-SSH-клиент для macOS в духе MobaXterm: сохранённые сессии, SFTP-браузер со встроенным редактором и мониторинг серверов в одном окне.
+Бесплатная альтернатива MobaXterm для macOS с открытым кодом: SSH-клиент и терминал с SFTP-браузером, встроенным редактором файлов на сервере и мониторингом нагрузки в одном окне.
 
 [Скачать](#установка) · [Возможности](#возможности) · [Скриншоты](#скриншоты) · [Начало работы](#начало-работы) · [Сборка](#сборка-из-исходников) · [English](README.md)
 
-<img src="docs/screenshots/main.png" alt="Главное окно Termora" />
+<img src="docs/screenshots/main.png" alt="Главное окно Northshell" />
 
 </div>
+
+## Зачем
+
+MobaXterm — популярный SSH-инструмент «всё в одном», но он есть только под Windows. Northshell переносит тот же подход на Mac: открываете сессию, и рядом с терминалом появляются файлы сервера, а внизу — его нагрузка. Можно поправить конфиг прямо на сервере, скачать бэкап, проверить место на диске — не переключаясь между программами и ничего не устанавливая на сервер.
 
 ## Возможности
 
@@ -60,35 +64,35 @@ SSH-клиент для macOS в духе MobaXterm: сохранённые се
 
 **Требования:** macOS 13 Ventura или новее, Mac на Apple Silicon (M1–M4).
 
-**Скачать:** [download/Termora-1.2.0-arm64.dmg](download/) (около 112 МБ) или из [последнего релиза](https://github.com/nikserbur/termora/releases/latest). Контрольная сумма — в [download/SHA256SUMS.txt](download/SHA256SUMS.txt):
+**Скачать:** [download/Northshell-1.3.0-arm64.dmg](download/) (около 112 МБ) или из [последнего релиза](https://github.com/nikserbur/northshell/releases/latest). Контрольная сумма — в [download/SHA256SUMS.txt](download/SHA256SUMS.txt):
 
 ```bash
-shasum -a 256 ~/Downloads/Termora-1.2.0-arm64.dmg
+shasum -a 256 ~/Downloads/Northshell-1.3.0-arm64.dmg
 ```
 
 **Установка**
-1. Откройте скачанный `Termora-1.2.0-arm64.dmg`.
-2. Перетащите **Termora** в папку **Applications** в открывшемся окне.
+1. Откройте скачанный `Northshell-1.3.0-arm64.dmg`.
+2. Перетащите **Northshell** в папку **Applications** в открывшемся окне.
 3. Извлеките образ диска (`⌘E` в Finder).
-4. Запустите Termora из Applications, Launchpad или Spotlight.
+4. Запустите Northshell из Applications, Launchpad или Spotlight.
 
-<img src="docs/screenshots/install-dmg.png" width="560" alt="Перетащите Termora в Applications" />
+<img src="docs/screenshots/install-dmg.png" width="560" alt="Перетащите Northshell в Applications" />
 
 **Первый запуск.** Приложение не подписано платным сертификатом Apple, поэтому macOS блокирует первый запуск скачанной копии. Разрешите его один раз любым способом:
 
-- **macOS 15 Sequoia и новее:** откройте Termora, закройте предупреждение, затем **Системные настройки → Конфиденциальность и безопасность** → внизу сообщение о Termora → **Всё равно открыть**, подтвердите паролем.
-- **macOS 13–14:** в Finder нажмите на Termora правой кнопкой (или с Control) → **Открыть** → **Открыть**.
+- **macOS 15 Sequoia и новее:** откройте Northshell, закройте предупреждение, затем **Системные настройки → Конфиденциальность и безопасность** → внизу сообщение о Northshell → **Всё равно открыть**, подтвердите паролем.
+- **macOS 13–14:** в Finder нажмите на Northshell правой кнопкой (или с Control) → **Открыть** → **Открыть**.
 - **Любая версия, через Терминал:**
 
   ```bash
-  xattr -dr com.apple.quarantine /Applications/Termora.app
+  xattr -dr com.apple.quarantine /Applications/Northshell.app
   ```
 
-При первом сохранении пароля macOS спросит, можно ли Termora использовать объект связки ключей **Termora Safe Storage** — выберите **Всегда разрешать**. После установки новой версии вопрос может повториться.
+При первом сохранении пароля macOS спросит, можно ли Northshell использовать объект связки ключей **Northshell Safe Storage** — выберите **Всегда разрешать**. После установки новой версии вопрос может повториться.
 
-**Обновление:** скачайте новый DMG и снова перетащите Termora в Applications с заменой. Сессии, настройки и известные хосты сохранятся.
+**Обновление:** скачайте новый DMG и снова перетащите Northshell в Applications с заменой. Сессии, настройки и известные хосты сохранятся.
 
-**Удаление:** удалите приложение из Applications, папку `~/Library/Application Support/Termora` и, при желании, объект **Termora Safe Storage** в «Связке ключей».
+**Удаление:** удалите приложение из Applications, папку `~/Library/Application Support/Northshell` и, при желании, объект **Northshell Safe Storage** в «Связке ключей».
 
 ## Начало работы
 
@@ -123,15 +127,47 @@ shasum -a 256 ~/Downloads/Termora-1.2.0-arm64.dmg
 - Команды мониторинга и поиска на сервере — фиксированные скрипты с экранированием аргументов; поиск сам останавливается через 13 секунд.
 - SFTP не перезаписывает существующие файлы при скачивании и не трогает цель при удалении символической ссылки.
 
-Данные приложения: `~/Library/Application Support/Termora/` (`sessions.json`, `settings.json`, `known_hosts.json`).
+Данные приложения: `~/Library/Application Support/Northshell/` (`sessions.json`, `settings.json`, `known_hosts.json`).
+
+## Northshell и другие SSH-клиенты для Mac
+
+Tabby, Electerm и WindTerm — кроссплатформенные терминалы с SSH и SFTP. Termius и Royal TSX — коммерческие менеджеры подключений. iTerm2 — отличный терминал без передачи файлов, а Cyberduck, Transmit и ForkLift работают с файлами, но без терминала.
+
+Northshell сделан под привычный по MobaXterm сценарий на macOS: SFTP-браузер рядом с терминалом той же сессии, редактирование файлов на сервере с сохранением по `⌘S`, мониторинг сервера без агентов, бесплатно и с открытым кодом, пароли в связке ключей macOS.
+
+## Частые вопросы
+
+**Есть ли MobaXterm для Mac?**
+Сам MobaXterm работает только в Windows. Northshell — приложение для macOS с той же идеей: SSH-терминал, SFTP и мониторинг в одном окне. X11-сервера и Windows-утилит MobaXterm в нём нет.
+
+**Это бесплатно?**
+Да, открытый код под лицензией MIT, без аккаунтов, подписок и телеметрии.
+
+**Работает ли на Intel?**
+Готовая сборка — для Apple Silicon. На Intel можно собрать из исходников.
+
+**Нужно ли что-то ставить на сервер?**
+Нет. Мониторинг использует стандартные команды по тому же SSH-соединению, SFTP — стандартный `sftp-server` из OpenSSH.
+
+**Где хранятся пароли?**
+В зашифрованном виде в связке ключей macOS на вашем Mac.
+
+**Можно редактировать файлы на сервере?**
+Да: двойной клик по файлу в SFTP-панели открывает редактор с подсветкой, `⌘S` сохраняет файл на сервер (до 5 МБ).
+
+## Ограничения
+
+- Только сборка для Apple Silicon, без подписи и нотаризации Apple.
+- Пока нет X11-проброса, RDP, VNC, последовательных портов, проброса портов и jump-хостов.
+- Мониторинг поддерживает серверы на Linux и macOS; на системах только с BusyBox часть данных может отсутствовать.
 
 ## Сборка из исходников
 
 Нужны macOS, Node.js 22+ и Xcode Command Line Tools.
 
 ```bash
-git clone https://github.com/nikserbur/termora.git
-cd termora
+git clone https://github.com/nikserbur/northshell.git
+cd northshell
 npm install
 npm run dev      # запуск с hot reload
 npm test         # unit-тесты

@@ -1,6 +1,6 @@
-appId: com.termora.app
-productName: Termora
-copyright: Copyright © 2026 Termora contributors
+appId: com.northshell.app
+productName: Northshell
+copyright: Copyright © 2026 Northshell contributors
 directories:
   buildResources: build
   output: dist
@@ -22,7 +22,7 @@ mac:
     - target: dmg
       arch: [arm64]
   extendInfo:
-    NSHumanReadableCopyright: Copyright © 2026 Termora contributors
+    NSHumanReadableCopyright: Copyright © 2026 Northshell contributors
 dmg:
   title: "${productName} ${version}"
   artifactName: "${productName}-${version}-arm64.${ext}"

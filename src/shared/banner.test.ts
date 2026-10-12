@@ -4,7 +4,7 @@ import { buildBanner } from './banner'
 const strip = (s: string): string => s.replace(/\x1b\[[0-9;]*m/g, '')
 
 describe('buildBanner', () => {
-  const banner = buildBanner({ app: 'Termora', version: '1.2.0', target: 'root@10.0.0.5:22', sftp: true, monitoring: false })
+  const banner = buildBanner({ app: 'Northshell', version: '1.2.0', target: 'root@10.0.0.5:22', sftp: true, monitoring: false })
   const lines = strip(banner).split('\r\n').filter(Boolean)
 
   it('draws a closed box with equal-width lines', () => {
@@ -16,7 +16,7 @@ describe('buildBanner', () => {
 
   it('names the app, the target and the enabled features', () => {
     const text = lines.join('\n')
-    expect(text).toContain('• Termora 1.2.0 •')
+    expect(text).toContain('• Northshell 1.2.0 •')
     expect(text).toContain('SSH session to root@10.0.0.5:22')
     expect(text).toMatch(/SFTP browser\s+:\s+✓/)
     expect(text).toMatch(/Server monitoring\s+:\s+✗/)
