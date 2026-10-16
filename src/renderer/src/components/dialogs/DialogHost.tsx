@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { useT } from '../../lib/useT'
 import { useApp, type Dialog } from '../../store/appStore'
 import { Modal } from '../Modal'
+import { CommandEditor } from './CommandEditor'
+import { CommandVarsDialog } from './CommandVarsDialog'
 import { SessionEditor } from './SessionEditor'
 import { SettingsDialog } from './SettingsDialog'
 
@@ -85,7 +87,17 @@ export function DialogHost() {
   if (!dialog) return null
   switch (dialog.kind) {
     case 'session-editor':
-      return <SessionEditor key={dialog.session?.id ?? 'new'} session={dialog.session} />
+      return (
+        <SessionEditor
+          key={dialog.session?.id ?? `new-${dialog.sessionKind ?? 'ssh'}`}
+          session={dialog.session}
+          sessionKind={dialog.sessionKind}
+        />
+      )
+    case 'command-editor':
+      return <CommandEditor key={dialog.snippet?.id ?? 'new'} snippet={dialog.snippet} sessionId={dialog.sessionId} />
+    case 'command-vars':
+      return <CommandVarsDialog key={dialog.snippet.id} snippet={dialog.snippet} tabId={dialog.tabId} />
     case 'settings':
       return <SettingsDialog />
     case 'confirm':

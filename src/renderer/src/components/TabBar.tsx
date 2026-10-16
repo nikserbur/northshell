@@ -1,7 +1,7 @@
-import { Activity, Command, House, PanelLeftOpen, Plus, Radio, Settings, SquareTerminal, X } from 'lucide-react'
+import { Activity, Command, Globe, House, PanelLeftOpen, Plus, Radio, ScrollText, Settings, SquareTerminal, X } from 'lucide-react'
 import { useState, type DragEvent } from 'react'
 import { useT } from '../lib/useT'
-import { closeTab, openLocal } from '../store/actions'
+import { closeTab, openLocal, setPanelOpen } from '../store/actions'
 import { useApp } from '../store/appStore'
 
 export function TabBar({ sidebarOpen, onShowSidebar }: { sidebarOpen: boolean; onShowSidebar: () => void }) {
@@ -16,6 +16,7 @@ export function TabBar({ sidebarOpen, onShowSidebar }: { sidebarOpen: boolean; o
   const setMonitorOpen = useApp((s) => s.setMonitorOpen)
   const setPalette = useApp((s) => s.setPalette)
   const openDialog = useApp((s) => s.openDialog)
+  const commandsOpen = useApp((s) => s.settings.commandsPanelOpen)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
 
   const onDrop = (e: DragEvent, idx: number): void => {
@@ -63,6 +64,8 @@ export function TabBar({ sidebarOpen, onShowSidebar }: { sidebarOpen: boolean; o
           >
             {tab.kind === 'local' ? (
               <SquareTerminal size={13} style={{ flex: 'none', opacity: 0.7 }} />
+            ) : tab.kind === 'http' ? (
+              <Globe size={13} className={`tab-kind ${tab.status}`} />
             ) : (
               <span className={`dot ${tab.status}`} />
             )}
@@ -97,6 +100,13 @@ export function TabBar({ sidebarOpen, onShowSidebar }: { sidebarOpen: boolean; o
           title={`${t('toggleMonitor')} ⇧⌘M`}
         >
           <Activity size={15} />
+        </button>
+        <button
+          className={`icon-btn ${commandsOpen ? 'on' : ''}`}
+          onClick={() => setPanelOpen('commandsPanelOpen', !commandsOpen)}
+          title={`${t('commandLibrary')} ⇧⌘L`}
+        >
+          <ScrollText size={15} />
         </button>
         <button className="icon-btn" onClick={() => setPalette(true)} title={`${t('paletteHint')} ⌘P`}>
           <Command size={15} />

@@ -3,11 +3,13 @@ import {
   ChevronRight,
   Copy,
   Download,
+  Globe,
   MoreHorizontal,
   PanelLeftClose,
   Pencil,
   Play,
   Plus,
+  ScrollText,
   Search,
   Server,
   SquareTerminal,
@@ -19,8 +21,8 @@ import type { SessionConfig } from '@shared/types'
 import { BRAND_HEAD, BRAND_TAIL } from '@shared/brand'
 import iconMark from '../assets/icon-32.png'
 import { useT } from '../lib/useT'
-import { errorMessage, monogram } from '../lib/util'
-import { openLocal, openSession, reloadSessions } from '../store/actions'
+import { errorMessage, monogram, sessionSubtitle } from '../lib/util'
+import { openLocal, openSession, reloadCommands, reloadSessions } from '../store/actions'
 import { useApp } from '../store/appStore'
 import { ContextMenu, type MenuEntry } from './ContextMenu'
 
@@ -36,6 +38,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const tabs = useApp((s) => s.tabs)
   const openDialog = useApp((s) => s.openDialog)
   const toast = useApp((s) => s.toast)
+  const commands = useApp((s) => s.library.commands)
   const [query, setQuery] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [menu, setMenu] = useState<MenuState | null>(null)
@@ -46,7 +49,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase()
     const filtered = sessions.filter(
-      (s) => !q || `${s.name} ${s.host} ${s.username} ${s.folder}`.toLowerCase().includes(q)
+      (s) => !q || `${s.name} ${s.host} ${s.username} ${s.folder} ${s.baseUrl}`.toLowerCase().includes(q)
     )
     const map = new Map<string, SessionConfig[]>()
     for (const s of [...filtered].sort((a, b) => a.name.localeCompare(b.name))) {
@@ -65,22 +68,25 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
     })
   }
 
-  const remove = (s: SessionConfig): void =>
+  const remove = (s: SessionConfig): void => {
+    const own = commands.filter((c) => c.sessionId === s.id).length
     openDialog({
       kind: 'confirm',
-      text: t('deleteSessionConfirm', { name: s.name }),
+      text: own > 0 ? t('deleteSessionWithCommands', { name: s.name, n: own }) : t('deleteSessionConfirm', { name: s.name }),
       confirmLabel: t('delete'),
       danger: true,
       onConfirm: () => {
         void window.xmt.sessions
           .remove(s.id)
           .then(reloadSessions)
+          .then(reloadCommands)
           .catch((err: unknown) => toast({ kind: 'error', text: errorMessage(err) }))
       }
     })
+  }
 
   const duplicate = (s: SessionConfig): void => {
-    void window.xmt.sessions.duplicate(s.id).then(reloadSessions)
+    void window.xmt.sessions.duplicate(s.id).then(() => Promise.all([reloadSessions(), reloadCommands()]))
   }
 
   const importConfig = async (): Promise<void> => {
@@ -94,9 +100,10 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   }
 
   const menuItems = (s: SessionConfig): MenuEntry[] => [
-    { label: t('connect'), icon: <Play size={14} />, onClick: () => openSession(s) },
+    { label: s.kind === 'http' ? t('open') : t('connect'), icon: <Play size={14} />, onClick: () => openSession(s) },
     { label: t('edit'), icon: <Pencil size={14} />, onClick: () => openDialog({ kind: 'session-editor', session: s }) },
     { label: t('duplicate'), icon: <Copy size={14} />, onClick: () => duplicate(s) },
+    { label: t('addCommand'), icon: <ScrollText size={14} />, onClick: () => openDialog({ kind: 'command-editor', sessionId: s.id }) },
     'separator',
     { label: t('delete'), icon: <Trash2 size={14} />, danger: true, onClick: () => remove(s) }
   ]
@@ -167,21 +174,20 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
                     style={{ ['--row-color' as string]: s.color }}
                     onDoubleClick={() => openSession(s)}
                     onContextMenu={(e) => showMenu(e, s)}
-                    title={`${s.username}@${s.host}:${s.port}`}
+                    title={s.kind === 'http' ? s.baseUrl : `${s.username}@${s.host}:${s.port}`}
                   >
                     <div className="monogram" style={{ ['--mono-color' as string]: s.color }}>
                       {monogram(s.name)}
                     </div>
                     <div className="session-meta">
-                      <span className="session-name truncate">{s.name}</span>
-                      <span className="session-host truncate">
-                        {s.username ? `${s.username}@` : ''}
-                        {s.host}
-                        {s.port !== 22 ? `:${s.port}` : ''}
+                      <span className="session-name truncate">
+                        {s.name}
+                        {s.kind === 'http' && <Globe size={11} className="kind-badge" aria-label="HTTP" />}
                       </span>
+                      <span className="session-host truncate">{sessionSubtitle(s)}</span>
                     </div>
                     <div className="session-actions">
-                      <button className="icon-btn sm" onClick={() => openSession(s)} title={t('connect')}>
+                      <button className="icon-btn sm" onClick={() => openSession(s)} title={s.kind === 'http' ? t('open') : t('connect')}>
                         <Play size={13} />
                       </button>
                       <button className="icon-btn sm" onClick={(e) => showMenu(e, s)} title={t('more')}>
@@ -198,6 +204,9 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
       <div className="sidebar-footer">
         <button className="btn sm" onClick={() => openLocal()} title={`${t('localTerminal')} ⌘T`}>
           <SquareTerminal size={14} /> <span className="btn-label">{t('localTerminal').split(' ')[0]}</span>
+        </button>
+        <button className="btn sm" onClick={() => openDialog({ kind: 'session-editor', sessionKind: 'http' })} title={`${t('newHttpEnv')} ⌥⌘N`}>
+          <Globe size={14} /> <span className="btn-label">HTTP</span>
         </button>
         <button className="btn sm" onClick={() => void importConfig()} title={t('importSshConfig')}>
           <Download size={14} /> <span className="btn-label">ssh config</span>

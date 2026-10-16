@@ -1,10 +1,24 @@
-import { Activity, ArrowRightLeft, HardDriveDownload, PanelLeft, Plus, Search, Settings, SquareTerminal, Zap } from 'lucide-react'
+import {
+  Activity,
+  ArrowRightLeft,
+  Globe,
+  HardDriveDownload,
+  PanelLeft,
+  Play,
+  Plus,
+  ScrollText,
+  Search,
+  Settings,
+  SquareTerminal,
+  Zap
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { parseQuickConnect } from '@shared/quickConnect'
+import { groupSnippets } from '@shared/snippets'
 import { makeT } from '../lib/i18n'
 import { useT } from '../lib/useT'
-import { monogram } from '../lib/util'
-import { openLocal, openQuick, openSession } from '../store/actions'
+import { monogram, sessionSubtitle } from '../lib/util'
+import { openLocal, openQuick, openSession, runSnippet, setPanelOpen } from '../store/actions'
 import { useApp } from '../store/appStore'
 
 interface Item {
@@ -23,6 +37,8 @@ export function CommandPalette({ onToggleSidebar, onToggleSftp }: { onToggleSide
   const sessions = useApp((s) => s.sessions)
   const tabs = useApp((s) => s.tabs)
   const settings = useApp((s) => s.settings)
+  const library = useApp((s) => s.library)
+  const activeId = useApp((s) => s.activeId)
   const setPalette = useApp((s) => s.setPalette)
   const openDialog = useApp((s) => s.openDialog)
   const setActive = useApp((s) => s.setActive)
@@ -58,15 +74,32 @@ export function CommandPalette({ onToggleSidebar, onToggleSftp }: { onToggleSide
           run: () => setActive(tab.id)
         })
       )
+    const active = tabs.find((tab) => tab.id === activeId)
+    if (active?.status === 'connected') {
+      const { own, shared } = groupSnippets(library.commands, active.sessionId, new Map())
+      const relevant = [...own, ...shared]
+      relevant
+        .filter((c) => match(`${c.name} ${c.command}`))
+        .forEach((c) =>
+          out.push({
+            id: `c-${c.id}`,
+            group: t('commands'),
+            label: c.name,
+            sub: c.command.trim().split('\n')[0],
+            icon: <Play size={15} />,
+            run: () => runSnippet(c, active.id, true)
+          })
+        )
+    }
     sessions
-      .filter((s) => match(`${s.name} ${s.host} ${s.username} ${s.folder}`))
+      .filter((s) => match(`${s.name} ${s.host} ${s.username} ${s.folder} ${s.baseUrl}`))
       .sort((a, b) => b.lastUsedAt - a.lastUsedAt)
       .forEach((s) =>
         out.push({
           id: `s-${s.id}`,
           group: t('sessions'),
           label: s.name,
-          sub: `${s.username}@${s.host}`,
+          sub: sessionSubtitle(s),
           icon: (
             <span className="monogram" style={{ width: 20, height: 20, fontSize: 9, borderRadius: 6, ['--mono-color' as string]: s.color }}>
               {monogram(s.name)}
@@ -79,6 +112,32 @@ export function CommandPalette({ onToggleSidebar, onToggleSftp }: { onToggleSide
     const actions: Item[] = [
       { id: 'a-local', group: t('actions'), label: t('localTerminal'), alias: en('localTerminal'), sub: '⌘T', icon: <SquareTerminal size={15} />, run: () => openLocal() },
       { id: 'a-new', group: t('actions'), label: t('newSession'), alias: en('newSession'), sub: '⌘N', icon: <Plus size={15} />, run: () => openDialog({ kind: 'session-editor' }) },
+      {
+        id: 'a-http',
+        group: t('actions'),
+        label: t('newHttpEnv'),
+        alias: `${en('newHttpEnv')} curl api`,
+        sub: '⌥⌘N',
+        icon: <Globe size={15} />,
+        run: () => openDialog({ kind: 'session-editor', sessionKind: 'http' })
+      },
+      {
+        id: 'a-commands',
+        group: t('actions'),
+        label: t('commandLibrary'),
+        alias: `${en('commandLibrary')} snippets macros`,
+        sub: '⇧⌘L',
+        icon: <ScrollText size={15} />,
+        run: () => setPanelOpen('commandsPanelOpen', !useApp.getState().settings.commandsPanelOpen)
+      },
+      {
+        id: 'a-new-command',
+        group: t('actions'),
+        label: t('newCommand'),
+        alias: en('newCommand'),
+        icon: <Plus size={15} />,
+        run: () => openDialog({ kind: 'command-editor' })
+      },
       { id: 'a-settings', group: t('actions'), label: t('settings'), alias: en('settings'), sub: '⌘,', icon: <Settings size={15} />, run: () => openDialog({ kind: 'settings' }) },
       { id: 'a-sidebar', group: t('actions'), label: t('toggleSidebar'), alias: en('toggleSidebar'), sub: '⌘B', icon: <PanelLeft size={15} />, run: onToggleSidebar },
       { id: 'a-sftp', group: t('actions'), label: t('toggleSftp'), alias: en('toggleSftp'), sub: '⇧⌘F', icon: <HardDriveDownload size={15} />, run: onToggleSftp },
@@ -92,7 +151,7 @@ export function CommandPalette({ onToggleSidebar, onToggleSftp }: { onToggleSide
       }
     ]
     return [...out, ...actions.filter((a) => match(`${a.label} ${a.alias ?? ''}`))]
-  }, [query, sessions, tabs, settings.defaultUsername, t, setActive, openDialog, setMonitorOpen, onToggleSidebar, onToggleSftp])
+  }, [query, sessions, tabs, activeId, library.commands, settings.defaultUsername, t, setActive, openDialog, setMonitorOpen, onToggleSidebar, onToggleSftp])
 
   useEffect(() => setSel(0), [query])
   useEffect(() => {

@@ -1,8 +1,12 @@
 export type AuthMethod = 'password' | 'key' | 'agent'
 
+/** `ssh` — a real SSH connection; `http` — a local shell prepared for curl requests to one server. */
+export type SessionKind = 'ssh' | 'http'
+
 /** Saved connection as seen by the renderer. Secrets never leave the main process. */
 export interface SessionConfig {
   id: string
+  kind: SessionKind
   name: string
   folder: string
   host: string
@@ -14,6 +18,12 @@ export interface SessionConfig {
   startupCommand: string
   monitoring: boolean
   sftp: boolean
+  /** HTTP environments: exported to the shell as $BASE_URL. */
+  baseUrl: string
+  /** HTTP environments: curl headers, one `Name: value` per line ($TOKEN is expanded). */
+  headers: string
+  /** HTTP environments: skip TLS certificate checks (curl --insecure). */
+  insecure: boolean
   hasSecret: boolean
   createdAt: number
   lastUsedAt: number
@@ -22,6 +32,7 @@ export interface SessionConfig {
 
 export interface SessionInput {
   id?: string
+  kind: SessionKind
   name: string
   folder: string
   host: string
@@ -33,7 +44,10 @@ export interface SessionInput {
   startupCommand: string
   monitoring: boolean
   sftp: boolean
-  /** New password / key passphrase. Undefined or empty = keep the stored one. */
+  baseUrl: string
+  headers: string
+  insecure: boolean
+  /** New password / key passphrase / HTTP token. Undefined or empty = keep the stored one. */
   secret?: string
   clearSecret?: boolean
 }
@@ -70,6 +84,7 @@ export interface AppSettings {
   confirmDelete: boolean
   sftpPanelOpen: boolean
   sidebarOpen: boolean
+  commandsPanelOpen: boolean
 }
 
 export interface QuickTarget {
@@ -91,6 +106,8 @@ export interface TabStatusEvent {
   message?: string
   /** Human readable remote endpoint, e.g. root@10.0.0.1:22 */
   endpoint?: string
+  /** HTTP environments: a token is saved but could not be read from the Keychain. */
+  tokenUnreadable?: boolean
 }
 
 export interface DiskUsage {
@@ -182,6 +199,31 @@ export interface TransferInfo {
   finishedAt?: number
 }
 
+/** A saved command. Without `sessionId` / `sessionName` it is shared by every connection. */
+export interface CommandSnippet {
+  id: string
+  name: string
+  command: string
+  sessionId?: string
+  /** Connection name as written in the library file; used when the id is unknown (hand edits, imports). */
+  sessionName?: string
+}
+
+export interface CommandSnippetInput {
+  id?: string
+  name: string
+  command: string
+  sessionId?: string
+  sessionName?: string
+}
+
+export interface CommandLibrary {
+  path: string
+  commands: CommandSnippet[]
+  /** Set while the library file cannot be parsed; edits are refused until it is fixed. */
+  error?: string
+}
+
 export type PromptRequest =
   | { id: string; kind: 'hostkey-new'; host: string; port: number; keyType: string; fingerprint: string }
   | {
@@ -225,6 +267,8 @@ export type MenuAction =
   | 'toggle-sftp'
   | 'toggle-sidebar'
   | 'toggle-monitor'
+  | 'toggle-commands'
+  | 'new-http'
   | 'find'
   | 'clear'
   | 'next-tab'

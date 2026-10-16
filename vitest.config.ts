@@ -8,7 +8,16 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       provider: 'v8',
-      include: ['src/shared/**/*.ts', 'src/main/monitor/parse*.ts', 'src/main/ssh/sshConfig.ts', 'src/main/store/knownHostsLogic.ts', 'src/main/dataBatcher.ts'],
+      include: [
+        'src/shared/**/*.ts',
+        'src/main/monitor/parse*.ts',
+        'src/main/ssh/sshConfig.ts',
+        'src/main/store/knownHostsLogic.ts',
+        'src/main/store/commandStore.ts',
+        'src/main/store/sessionStore.ts',
+        'src/main/http/httpShell.ts',
+        'src/main/dataBatcher.ts'
+      ],
       exclude: ['**/*.test.ts', 'src/shared/types.ts']
     }
   }

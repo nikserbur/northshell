@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { APP_NAME } from '@shared/brand'
 import type { AppSettings, MenuAction } from '@shared/types'
 import { CommandPalette } from './components/CommandPalette'
+import { CommandsPanel } from './components/commands/CommandsPanel'
 import { DialogHost } from './components/dialogs/DialogHost'
 import { PromptHost } from './components/dialogs/PromptHost'
 import { MonitorPanel } from './components/MonitorPanel'
@@ -14,7 +15,7 @@ import { TabBar } from './components/TabBar'
 import { TerminalArea } from './components/TerminalArea'
 import { Toasts } from './components/Toasts'
 import { TooltipLayer } from './components/TooltipLayer'
-import { activateRelative, bindIpc, closeTab, openLocal } from './store/actions'
+import { activateRelative, bindIpc, closeTab, openLocal, setPanelOpen } from './store/actions'
 import { useApp } from './store/appStore'
 import { registry } from './terminal/registry'
 import { getTerminalTheme } from './terminal/themes'
@@ -66,10 +67,13 @@ export function App() {
   useEffect(() => {
     document.title = APP_NAME
     const off = bindIpc()
-    void Promise.all([window.xmt.settings.get(), window.xmt.sessions.list(), loadFonts()]).then(([s, sessions]) => {
-      applyTheme(s)
-      useApp.getState().init(s, sessions)
-    })
+    void Promise.all([window.xmt.settings.get(), window.xmt.sessions.list(), window.xmt.commands.list(), loadFonts()]).then(
+      ([s, sessions, library]) => {
+        applyTheme(s)
+        useApp.getState().setLibrary(library)
+        useApp.getState().init(s, sessions)
+      }
+    )
     return off
   }, [])
 
@@ -94,20 +98,18 @@ export function App() {
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  const wantsLocalStats = !active || active.kind === 'local'
+  const wantsLocalStats = !active || active.kind !== 'ssh'
   useEffect(() => {
     if (!ready) return
     void window.xmt.monitor.setLocal(wantsLocalStats && settings.monitorEnabled)
   }, [ready, wantsLocalStats, settings.monitorEnabled])
 
-  const toggleSetting = useCallback((key: 'sidebarOpen' | 'sftpPanelOpen') => {
-    const current = useApp.getState().settings
-    const patch = { [key]: !current[key] }
-    useApp.getState().setSettings({ ...current, ...patch })
-    void window.xmt.settings.set(patch).then((s) => useApp.getState().setSettings(s))
+  const toggleSetting = useCallback((key: 'sidebarOpen' | 'sftpPanelOpen' | 'commandsPanelOpen') => {
+    setPanelOpen(key, !useApp.getState().settings[key])
   }, [])
   const toggleSidebar = useCallback(() => toggleSetting('sidebarOpen'), [toggleSetting])
   const toggleSftp = useCallback(() => toggleSetting('sftpPanelOpen'), [toggleSetting])
+  const toggleCommands = useCallback(() => toggleSetting('commandsPanelOpen'), [toggleSetting])
 
   useEffect(() => {
     const handle = (action: MenuAction): void => {
@@ -124,6 +126,12 @@ export function App() {
           break
         case 'new-session':
           store.openDialog({ kind: 'session-editor' })
+          break
+        case 'new-http':
+          store.openDialog({ kind: 'session-editor', sessionKind: 'http' })
+          break
+        case 'toggle-commands':
+          toggleCommands()
           break
         case 'close-tab':
           if (store.dialog) store.openDialog(null)
@@ -161,7 +169,7 @@ export function App() {
       }
     }
     return window.xmt.app.onMenu(handle)
-  }, [toggleSftp, toggleSidebar])
+  }, [toggleSftp, toggleSidebar, toggleCommands])
 
   if (!ready) return <div className="app" style={{ background: 'var(--surface-0)' }} />
 
@@ -175,6 +183,7 @@ export function App() {
         <div className="workspace">
           {showSftp && active && <SftpPanel key={active.id} tab={active} />}
           <TerminalArea />
+          {settings.commandsPanelOpen && <CommandsPanel tab={active} onClose={toggleCommands} />}
         </div>
         {monitorOpen && <MonitorPanel />}
         <StatusBar />

@@ -1086,3 +1086,197 @@
   bottom: 0;
   height: 7px;
 }
+
+/* ───────────── Command library ───────────── */
+.cmd-panel {
+  border-right: 0;
+  border-left: 1px solid var(--line);
+}
+
+.cmd-list {
+  padding: 0 6px 10px;
+}
+
+.cmd-section .sidebar-section {
+  padding: 10px 4px 4px;
+}
+
+.cmd-section .sidebar-section > button:first-child {
+  min-width: 0;
+}
+
+.cmd-section-add {
+  width: 20px;
+  height: 20px;
+  opacity: 0;
+}
+
+.cmd-section:hover .cmd-section-add,
+.cmd-section-add:focus-visible {
+  opacity: 1;
+}
+
+.cmd-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px 6px 10px;
+  border-radius: var(--radius-s);
+  transition: background var(--fast) var(--ease);
+}
+
+.cmd-row::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.cmd-row:hover {
+  background: var(--hover);
+}
+
+.cmd-row:hover::before {
+  opacity: 0.8;
+}
+
+.cmd-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cmd-name {
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--text-0);
+}
+
+.cmd-text {
+  font: 11px/1.4 var(--font-mono);
+  color: var(--text-2);
+}
+
+.cmd-text .ph {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: var(--accent-fg);
+}
+
+.cmd-text .more {
+  color: var(--text-3);
+}
+
+.cmd-actions {
+  display: flex;
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.cmd-row:hover .cmd-actions,
+.cmd-row:focus-within .cmd-actions {
+  opacity: 1;
+}
+
+.cmd-error {
+  margin: 0 8px 8px;
+  font-size: 11.5px;
+}
+
+.cmd-error-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.cmd-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 12px 6px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+/* Command editor and parameter dialog */
+textarea.input {
+  height: auto;
+  min-height: 64px;
+  padding: 8px 11px;
+  resize: vertical;
+  line-height: 1.5;
+  font-family: var(--font-mono);
+}
+
+.cmd-vars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cmd-var {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: var(--accent-soft);
+  color: var(--accent-fg);
+}
+
+.cmd-var em {
+  font-style: normal;
+  color: var(--text-2);
+}
+
+.cmd-preview {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: var(--radius-s);
+  background: var(--surface-0);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: 12px/1.5 var(--font-mono);
+  color: var(--text-0);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* HTTP environments */
+.session-kind {
+  align-self: flex-start;
+}
+
+.kind-badge {
+  display: inline-block;
+  margin-left: 5px;
+  vertical-align: -1px;
+  color: var(--text-2);
+}
+
+.tab-kind {
+  flex: none;
+  opacity: 0.8;
+}
+
+.tab-kind.connected {
+  color: var(--ok);
+}
+
+.tab-kind.error {
+  color: var(--danger);
+}
+
+.tab-kind.closed {
+  opacity: 0.45;
+}

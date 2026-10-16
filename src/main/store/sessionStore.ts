@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { SESSION_COLORS } from '@shared/defaults'
+import { endpointOf, normalizeBaseUrl } from '@shared/httpEnv'
 import type { SessionConfig, SessionInput } from '@shared/types'
 import type { SshConfigHost } from '../ssh/sshConfig'
 import { JsonFile } from './jsonFile'
@@ -11,15 +12,61 @@ export interface SecretCipher {
   decrypt(cipher: string): string
 }
 
-type StoredSession = Omit<SessionConfig, 'hasSecret'> & { secret?: string }
+type StoredSession = Omit<SessionConfig, 'hasSecret' | 'kind' | 'baseUrl' | 'headers' | 'insecure'> &
+  Partial<Pick<SessionConfig, 'kind' | 'baseUrl' | 'headers' | 'insecure'>> & { secret?: string }
 
 interface SessionsFile {
   version: 1
   sessions: StoredSession[]
 }
 
+/** Sessions saved before HTTP environments existed have no kind and are SSH. */
 function toPublic({ secret, ...rest }: StoredSession): SessionConfig {
-  return { ...rest, hasSecret: Boolean(secret) }
+  return {
+    ...rest,
+    kind: rest.kind ?? 'ssh',
+    baseUrl: rest.baseUrl ?? '',
+    headers: rest.headers ?? '',
+    insecure: rest.insecure ?? false,
+    hasSecret: Boolean(secret)
+  }
+}
+
+/** HTTP environments take host and port from the base URL; SSH-only options are switched off. */
+function connectionFields(input: SessionInput): Pick<
+  StoredSession,
+  'kind' | 'host' | 'port' | 'username' | 'auth' | 'keyPath' | 'monitoring' | 'sftp' | 'baseUrl' | 'headers' | 'insecure'
+> {
+  if (input.kind === 'http') {
+    const baseUrl = normalizeBaseUrl(input.baseUrl) ?? input.baseUrl
+    const endpoint = endpointOf(baseUrl)
+    return {
+      kind: 'http',
+      host: endpoint?.host ?? '',
+      port: endpoint?.port ?? 443,
+      username: '',
+      auth: 'password',
+      keyPath: '',
+      monitoring: false,
+      sftp: false,
+      baseUrl,
+      headers: input.headers,
+      insecure: input.insecure
+    }
+  }
+  return {
+    kind: 'ssh',
+    host: input.host,
+    port: input.port,
+    username: input.username,
+    auth: input.auth,
+    keyPath: input.keyPath,
+    monitoring: input.monitoring,
+    sftp: input.sftp,
+    baseUrl: '',
+    headers: '',
+    insecure: false
+  }
 }
 
 export class SessionStore {
@@ -80,15 +127,9 @@ export class SessionStore {
       id: existing?.id ?? randomUUID(),
       name: input.name,
       folder: input.folder,
-      host: input.host,
-      port: input.port,
-      username: input.username,
-      auth: input.auth,
-      keyPath: input.keyPath,
+      ...connectionFields(input),
       color: input.color,
       startupCommand: input.startupCommand,
-      monitoring: input.monitoring,
-      sftp: input.sftp,
       createdAt: existing?.createdAt ?? now,
       lastUsedAt: existing?.lastUsedAt ?? 0,
       useCount: existing?.useCount ?? 0,
@@ -141,6 +182,7 @@ export class SessionStore {
       known.add(key)
       added.push({
         id: randomUUID(),
+        kind: 'ssh',
         name: h.alias,
         folder: 'ssh config',
         host: h.host,

@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'ele
 import { IPC } from '@shared/ipc'
 import type {
   AppSettings,
+  CommandLibrary,
+  CommandSnippetInput,
   MenuAction,
   MonitorEvent,
   OpenTarget,
@@ -29,6 +31,15 @@ const api = {
     remove: (id: string): Promise<void> => ipcRenderer.invoke(IPC.sessionsRemove, id),
     duplicate: (id: string): Promise<SessionConfig | undefined> => ipcRenderer.invoke(IPC.sessionsDuplicate, id),
     importSshConfig: (): Promise<number> => ipcRenderer.invoke(IPC.sessionsImport)
+  },
+  commands: {
+    list: (): Promise<CommandLibrary> => ipcRenderer.invoke(IPC.commandsList),
+    save: (input: CommandSnippetInput): Promise<CommandLibrary> => ipcRenderer.invoke(IPC.commandsSave, input),
+    remove: (id: string): Promise<CommandLibrary> => ipcRenderer.invoke(IPC.commandsRemove, id),
+    importFile: (): Promise<{ added: number; library: CommandLibrary } | null> => ipcRenderer.invoke(IPC.commandsImport),
+    exportFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.commandsExport),
+    openFile: (): Promise<void> => ipcRenderer.invoke(IPC.commandsOpenFile),
+    onChanged: (cb: (library: CommandLibrary) => void): (() => void) => listen(IPC.commandsChanged, cb)
   },
   settings: {
     get: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.settingsGet),

@@ -1,4 +1,4 @@
-import type { Language } from '@shared/types'
+import type { Language, SessionConfig } from '@shared/types'
 
 export function monogram(name: string): string {
   const words = name.trim().split(/[\s._@-]+/).filter(Boolean)
@@ -34,4 +34,10 @@ export function formatDate(ts: number, lang: Language): string {
 export function errorMessage(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err)
   return raw.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+}
+
+/** Second line under a session name: user@host:port, or the base URL of an HTTP environment. */
+export function sessionSubtitle(s: SessionConfig): string {
+  if (s.kind === 'http') return s.baseUrl.replace(/^https?:\/\//, '')
+  return `${s.username ? `${s.username}@` : ''}${s.host}${s.port !== 22 ? `:${s.port}` : ''}`
 }

@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron'
@@ -8,6 +8,7 @@ import type { PromptResponse } from '@shared/types'
 import type { PromptBroker } from './prompts'
 import type { SftpService } from './sftp/sftpService'
 import { parseSshConfig } from './ssh/sshConfig'
+import type { CommandStore } from './store/commandStore'
 import type { SessionStore } from './store/sessionStore'
 import type { SettingsStore } from './store/settingsStore'
 import type { TerminalService } from './terminals'
@@ -15,6 +16,7 @@ import type { TerminalService } from './terminals'
 interface IpcDeps {
   window: () => BrowserWindow | null
   sessions: SessionStore
+  commands: CommandStore
   settings: SettingsStore
   terminals: TerminalService
   sftp: SftpService
@@ -36,6 +38,7 @@ const openTarget = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('session'), sessionId: id }),
   z.object({ kind: z.literal('quick'), target: quickTarget })
 ])
+const MAX_IMPORT_BYTES = 4 * 1024 * 1024
 const promptResponse = z.object({
   id,
   accepted: z.boolean(),
@@ -58,12 +61,55 @@ export function registerIpc(deps: IpcDeps): void {
 
   handle(IPC.sessionsList, () => deps.sessions.list())
   handle(IPC.sessionsSave, (input) => deps.sessions.save(input))
-  handle(IPC.sessionsRemove, (sid) => deps.sessions.remove(id.parse(sid)))
-  handle(IPC.sessionsDuplicate, (sid) => deps.sessions.duplicate(id.parse(sid)))
+  handle(IPC.sessionsRemove, (sid) => {
+    const sessionId = id.parse(sid)
+    // Before the session goes: entries linked only by connection name still resolve to it.
+    try {
+      deps.commands.removeForSession(sessionId)
+    } catch (err) {
+      console.error('[commands] could not remove commands of a deleted session', err)
+    }
+    deps.sessions.remove(sessionId)
+  })
+  handle(IPC.sessionsDuplicate, (sid) => {
+    const copy = deps.sessions.duplicate(id.parse(sid))
+    if (copy) deps.commands.copySession(id.parse(sid), copy.id)
+    return copy
+  })
   handle(IPC.sessionsImport, async () => {
     const path = join(homedir(), '.ssh', 'config')
     const text = await readFile(path, 'utf8').catch(() => '')
     return deps.sessions.importHosts(parseSshConfig(text, homedir()), deps.settings.get().defaultUsername)
+  })
+
+  handle(IPC.commandsList, () => deps.commands.library())
+  handle(IPC.commandsSave, (input) => deps.commands.save(input))
+  handle(IPC.commandsRemove, (cid) => deps.commands.remove(id.parse(cid)))
+  handle(IPC.commandsOpenFile, async () => {
+    deps.commands.ensureFile()
+    const err = await shell.openPath(deps.commands.path)
+    if (err) throw new Error(err)
+  })
+  handle(IPC.commandsImport, async () => {
+    const win = deps.window()
+    if (!win) return null
+    const res = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'JSON', extensions: ['json'] }] })
+    const path = res.canceled ? undefined : res.filePaths[0]
+    if (!path) return null
+    if ((await stat(path)).size > MAX_IMPORT_BYTES) throw new Error('File is too large for a command library')
+    return deps.commands.importText(await readFile(path, 'utf8'))
+  })
+  handle(IPC.commandsExport, async () => {
+    const win = deps.window()
+    if (!win) return null
+    const text = deps.commands.exportText()
+    const res = await dialog.showSaveDialog(win, {
+      defaultPath: join(app.getPath('documents'), 'northshell-commands.json'),
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    })
+    if (res.canceled || !res.filePath) return null
+    await writeFile(res.filePath, text, { encoding: 'utf8', mode: 0o600 })
+    return res.filePath
   })
 
   handle(IPC.settingsGet, () => deps.settings.get())

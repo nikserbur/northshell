@@ -6,6 +6,14 @@ export const IPC = {
   sessionsDuplicate: 'sessions:duplicate',
   sessionsImport: 'sessions:import-ssh-config',
 
+  commandsList: 'commands:list',
+  commandsSave: 'commands:save',
+  commandsRemove: 'commands:remove',
+  commandsImport: 'commands:import',
+  commandsExport: 'commands:export',
+  commandsOpenFile: 'commands:open-file',
+  commandsChanged: 'commands:changed',
+
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
 

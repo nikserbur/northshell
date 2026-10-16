@@ -34,6 +34,7 @@ export function buildMenu(getWindow: () => BrowserWindow | null): void {
       submenu: [
         { label: 'New Local Terminal', accelerator: 'CmdOrCtrl+T', click: send('new-local') },
         { label: 'New SSH Session…', accelerator: 'CmdOrCtrl+N', click: send('new-session') },
+        { label: 'New HTTP Environment…', accelerator: 'CmdOrCtrl+Alt+N', click: send('new-http') },
         { label: 'Command Palette', accelerator: 'CmdOrCtrl+P', click: send('palette') },
         { type: 'separator' },
         { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: send('close-tab') }
@@ -60,6 +61,7 @@ export function buildMenu(getWindow: () => BrowserWindow | null): void {
         { label: 'Toggle Sessions Sidebar', accelerator: 'CmdOrCtrl+B', click: send('toggle-sidebar') },
         { label: 'Toggle SFTP Browser', accelerator: 'CmdOrCtrl+Shift+F', click: send('toggle-sftp') },
         { label: 'Toggle Monitor', accelerator: 'CmdOrCtrl+Shift+M', click: send('toggle-monitor') },
+        { label: 'Toggle Command Library', accelerator: 'CmdOrCtrl+Shift+L', click: send('toggle-commands') },
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },

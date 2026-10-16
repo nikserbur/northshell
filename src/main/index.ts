@@ -4,10 +4,12 @@ import { APP_NAME, LEGACY_APP_NAMES } from '@shared/brand'
 import { IPC } from '@shared/ipc'
 import { LOCAL_MONITOR_ID, type UiTheme } from '@shared/types'
 import { registerIpc } from './ipc'
+import { sweepStaleHttpShells } from './http/httpShell'
 import { buildMenu } from './menu'
 import { LocalMonitor } from './monitor/localMonitor'
 import { PromptBroker } from './prompts'
 import { SftpService } from './sftp/sftpService'
+import { CommandStore } from './store/commandStore'
 import { KnownHostsStore } from './store/knownHosts'
 import { migrateLegacyData } from './store/migrate'
 import { SessionStore } from './store/sessionStore'
@@ -81,12 +83,15 @@ void app.whenReady().then(() => {
       dataDir
     )
   }
+  sweepStaleHttpShells()
   const settings = new SettingsStore(join(dataDir, 'settings.json'))
   const sessions = new SessionStore(join(dataDir, 'sessions.json'), {
     isAvailable: () => safeStorage.isEncryptionAvailable(),
     encrypt: (plain) => safeStorage.encryptString(plain).toString('base64'),
     decrypt: (cipher) => safeStorage.decryptString(Buffer.from(cipher, 'base64'))
   })
+  const commands = new CommandStore(join(dataDir, 'commands.json'), () => sessions.list())
+  const stopWatchingCommands = commands.watch((library) => send(IPC.commandsChanged, library))
   const knownHosts = new KnownHostsStore(join(dataDir, 'known_hosts.json'))
   const prompts = new PromptBroker(() => getWindow()?.webContents ?? null)
 
@@ -122,6 +127,7 @@ void app.whenReady().then(() => {
   registerIpc({
     window: getWindow,
     sessions,
+    commands,
     settings,
     terminals,
     sftp,
@@ -147,7 +153,10 @@ void app.whenReady().then(() => {
   app.on('activate', () => {
     if (!getWindow()) openMainWindow()
   })
-  app.on('before-quit', () => terminals.closeAll())
+  app.on('before-quit', () => {
+    stopWatchingCommands()
+    terminals.closeAll()
+  })
 })
 
 app.on('window-all-closed', () => {

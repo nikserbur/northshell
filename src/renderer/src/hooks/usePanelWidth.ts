@@ -18,8 +18,11 @@ function write(key: string, value: number | null): void {
   }
 }
 
-/** Drag-to-resize width for a side panel, remembered per viewer; double-click resets. */
-export function usePanelWidth(key: string, initial: number, min: number, max: number) {
+/**
+ * Drag-to-resize width for a side panel, remembered per viewer; double-click resets.
+ * `side` is where the panel sits: a right-hand panel grows when dragged to the left.
+ */
+export function usePanelWidth(key: string, initial: number, min: number, max: number, side: 'left' | 'right' = 'left') {
   const [width, setWidth] = useState(() => read(key, initial, min, max))
 
   const startResize = useCallback(
@@ -31,7 +34,8 @@ export function usePanelWidth(key: string, initial: number, min: number, max: nu
       let latest = startW
       document.body.classList.add('resizing')
       const move = (ev: globalThis.MouseEvent): void => {
-        latest = Math.round(Math.min(max, Math.max(min, startW + ev.clientX - startX)))
+        const delta = side === 'left' ? ev.clientX - startX : startX - ev.clientX
+        latest = Math.round(Math.min(max, Math.max(min, startW + delta)))
         setWidth(latest)
       }
       const up = (): void => {
@@ -43,7 +47,7 @@ export function usePanelWidth(key: string, initial: number, min: number, max: nu
       window.addEventListener('mousemove', move)
       window.addEventListener('mouseup', up)
     },
-    [width, key, min, max]
+    [width, key, min, max, side]
   )
 
   const reset = useCallback((): void => {

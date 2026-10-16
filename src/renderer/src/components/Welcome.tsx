@@ -1,10 +1,10 @@
-import { ArrowRight, Download, Plus, SquareTerminal } from 'lucide-react'
+import { ArrowRight, Download, Globe, Plus, SquareTerminal } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { parseQuickConnect } from '@shared/quickConnect'
 import type { I18nKey } from '../lib/i18n'
 import iconMark from '../assets/icon-32.png'
 import { useT } from '../lib/useT'
-import { errorMessage, monogram, relativeTime } from '../lib/util'
+import { errorMessage, monogram, relativeTime, sessionSubtitle } from '../lib/util'
 import { openLocal, openQuick, openSession, reloadSessions } from '../store/actions'
 import { useApp } from '../store/appStore'
 
@@ -14,6 +14,7 @@ const SHORTCUTS: [I18nKey, string[]][] = [
   ['paletteHint', ['⌘', 'P']],
   ['toggleSftp', ['⇧', '⌘', 'F']],
   ['toggleMonitor', ['⇧', '⌘', 'M']],
+  ['commandLibrary', ['⇧', '⌘', 'L']],
   ['find', ['⌘', 'F']],
   ['clear', ['⌘', 'K']],
   ['toggleSidebar', ['⌘', 'B']]
@@ -97,6 +98,9 @@ export function Welcome() {
             <button className="btn" onClick={() => openLocal()}>
               <SquareTerminal size={14} /> {t('localTerminal')}
             </button>
+            <button className="btn" onClick={() => openDialog({ kind: 'session-editor', sessionKind: 'http' })}>
+              <Globe size={14} /> {t('newHttpEnv')}
+            </button>
             <button className="btn ghost" onClick={() => void importConfig()}>
               <Download size={14} /> {t('importSshConfig')}
             </button>
@@ -119,10 +123,7 @@ export function Welcome() {
                   </div>
                   <div className="session-meta">
                     <span className="session-name truncate">{s.name}</span>
-                    <span className="session-host truncate">
-                      {s.username}@{s.host}
-                      {s.port !== 22 ? `:${s.port}` : ''}
-                    </span>
+                    <span className="session-host truncate">{sessionSubtitle(s)}</span>
                   </div>
                   {s.lastUsedAt > 0 && <span className="when">{relativeTime(s.lastUsedAt, settings.language)}</span>}
                 </button>

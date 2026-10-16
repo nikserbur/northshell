@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { DEFAULT_SETTINGS } from '@shared/defaults'
 import type {
   AppSettings,
+  CommandLibrary,
+  CommandSnippet,
   MonitorSnapshot,
   OpenTarget,
   PromptRequest,
@@ -14,7 +16,7 @@ import type {
 export interface Tab {
   id: string
   title: string
-  kind: 'local' | 'ssh'
+  kind: 'local' | 'ssh' | 'http'
   target: OpenTarget
   sessionId?: string
   color: string
@@ -46,7 +48,9 @@ export interface EditorDoc extends RemoteFile {
 }
 
 export type Dialog =
-  | { kind: 'session-editor'; session?: SessionConfig }
+  | { kind: 'session-editor'; session?: SessionConfig; sessionKind?: SessionConfig['kind'] }
+  | { kind: 'command-editor'; snippet?: CommandSnippet; sessionId?: string }
+  | { kind: 'command-vars'; snippet: CommandSnippet; tabId: string }
   | { kind: 'settings' }
   | { kind: 'confirm'; text: string; confirmLabel: string; danger?: boolean; onConfirm: () => void }
   | { kind: 'input'; title: string; value: string; confirmLabel: string; onSubmit: (value: string) => void }
@@ -62,6 +66,7 @@ interface AppState {
   ready: boolean
   settings: AppSettings
   sessions: SessionConfig[]
+  library: CommandLibrary
   tabs: Tab[]
   activeId: string | null
   monitors: Record<string, MonitorHistory>
@@ -80,6 +85,7 @@ interface AppState {
   init(settings: AppSettings, sessions: SessionConfig[]): void
   setSettings(settings: AppSettings): void
   setSessions(sessions: SessionConfig[]): void
+  setLibrary(library: CommandLibrary): void
   addTab(tab: Tab): void
   updateTab(id: string, patch: Partial<Tab>): void
   removeTab(id: string): void
@@ -106,6 +112,7 @@ export const useApp = create<AppState>((set) => ({
   ready: false,
   settings: DEFAULT_SETTINGS,
   sessions: [],
+  library: { path: '', commands: [] },
   tabs: [],
   activeId: null,
   monitors: {},
@@ -124,6 +131,7 @@ export const useApp = create<AppState>((set) => ({
   init: (settings, sessions) => set({ settings, sessions, ready: true }),
   setSettings: (settings) => set({ settings }),
   setSessions: (sessions) => set({ sessions }),
+  setLibrary: (library) => set({ library }),
   addTab: (tab) => set((s) => ({ tabs: [...s.tabs, tab], activeId: tab.id })),
   updateTab: (id, patch) => set((s) => ({ tabs: s.tabs.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
   removeTab: (id) =>

@@ -84,13 +84,78 @@ await step('monitor panel opens', async () => {
 })
 
 await step('command palette filters actions', async () => {
-  await page.click('.titlebar-actions .icon-btn:nth-child(3)')
+  await page.click('.titlebar-actions .icon-btn:nth-child(4)')
   await page.waitForSelector('.palette input')
   await page.keyboard.type('set')
   await page.waitForSelector('.palette-item:has-text("Настройки")', { timeout: 3000 })
   await page.waitForTimeout(250)
   await shot('04-palette')
   await page.keyboard.press('Escape')
+})
+
+async function addCommand(name, command) {
+  await page.click('.cmd-panel .sftp-head .icon-btn:nth-child(2)')
+  await page.fill('#cmd-name', name)
+  await page.fill('#cmd-text', command)
+  await page.click('.modal-foot .btn.primary')
+  await page.waitForSelector(`.cmd-row:has-text("${name}")`, { timeout: 5000 })
+}
+
+await step('command library: a shared command runs in the terminal', async () => {
+  await page.click('.titlebar-actions .icon-btn:nth-child(3)')
+  await page.waitForSelector('.cmd-panel', { timeout: 3000 })
+  const marker = join(dataDir, 'cmd-marker.txt')
+  await addCommand('E2E marker', `echo "cmd-$((6*7))" > '${marker}'`)
+  await page.hover('.cmd-row:has-text("E2E marker")')
+  await page.click('.cmd-row:has-text("E2E marker") .cmd-actions .icon-btn:nth-child(1)')
+  await waitForFile(marker, 'cmd-42')
+  await waitForFile(join(dataDir, 'commands.json'), '"name": "E2E marker"')
+})
+
+await step('command library: {{placeholders}} are asked for before running', async () => {
+  const marker = join(dataDir, 'cmd-param.txt')
+  await addCommand('E2E param', `echo "{{word:hi}}-ok" > '${marker}'`)
+  await page.dblclick('.cmd-row:has-text("E2E param")')
+  await page.waitForSelector('.modal .cmd-preview', { timeout: 3000 })
+  await page.fill('.modal input.mono', 'param')
+  await page.waitForTimeout(300)
+  await shot('14-command-params')
+  await page.keyboard.press('Enter')
+  await waitForFile(marker, 'param-ok')
+})
+
+await step('command library: edits to commands.json show up in the app', async () => {
+  const file = join(dataDir, 'commands.json')
+  const data = JSON.parse(readFileSync(file, 'utf8'))
+  data.commands.push({ name: 'From file', command: 'echo edited-by-hand' })
+  writeFileSync(file, JSON.stringify(data, null, 2))
+  await page.waitForSelector('.cmd-row:has-text("From file")', { timeout: 5000 })
+})
+
+await step('HTTP environment: shell gets $BASE_URL and curl headers', async () => {
+  await page.click('.sidebar-footer .btn:nth-child(2)')
+  await page.waitForSelector('#http-base-url', { timeout: 3000 })
+  await page.fill('#http-base-url', 'https://api.example.test/v1/')
+  await page.fill('#http-name', 'E2E API')
+  await page.fill('#http-headers', 'Accept: application/json\nX-E2E: yes')
+  await page.waitForTimeout(300)
+  await shot('15-http-editor')
+  await page.click('.modal-foot .btn.primary')
+  await page.waitForSelector('.tab.active:has-text("E2E API")', { timeout: 5000 })
+  await page.waitForSelector('.cmd-panel .sidebar-section:has-text("E2E API")', { timeout: 3000 })
+  await page.waitForTimeout(1500)
+  await page.click('.term-host.active')
+  const marker = join(dataDir, 'http-marker.txt')
+  await page.keyboard.type(`echo "$BASE_URL|$(grep X-E2E "$CURL_HOME/.curlrc")" > '${marker}'\n`)
+  await waitForFile(marker, 'https://api.example.test/v1|header = "X-E2E: yes"')
+  await addCommand('API health', 'curl -s $BASE_URL/health')
+  await page.waitForSelector('.cmd-panel .cmd-section:first-child .cmd-row:has-text("API health")', { timeout: 3000 })
+  await shot('16-http-environment')
+})
+
+await step('command library panel closes', async () => {
+  await page.click('.titlebar-actions .icon-btn:nth-child(3)')
+  await page.waitForSelector('.cmd-panel', { state: 'detached', timeout: 3000 })
 })
 
 if (ssh.host && ssh.key && ssh.user) {
@@ -101,7 +166,7 @@ if (ssh.host && ssh.key && ssh.user) {
     await page.fill('.modal input[inputmode="numeric"]', ssh.port)
     await page.fill('.modal .grid-2 input >> nth=0', ssh.user)
     await page.fill('.modal .grid-2 input >> nth=1', 'Test server')
-    await page.click('.modal .segmented button:nth-child(2)')
+    await page.click('.modal .segmented:not(.session-kind) button:nth-child(2)')
     await page.fill('.modal input[placeholder="~/.ssh/id_ed25519"]', ssh.key)
     await page.fill('.modal input[list="xmt-folders"]', 'staging')
     await shot('05-session-editor')
@@ -238,7 +303,7 @@ if (ssh.host && ssh.key && ssh.user) {
 }
 
 await step('hover tooltip explains icon buttons', async () => {
-  await page.hover('.titlebar-actions .icon-btn:nth-child(4)')
+  await page.hover('.titlebar-actions .icon-btn:nth-child(5)')
   await page.waitForSelector('.tooltip:has-text("Настройки")', { timeout: 3000 })
   await page.mouse.move(700, 500)
 })
@@ -256,7 +321,7 @@ await step('sessions sidebar can be resized by dragging', async () => {
 })
 
 await step('settings dialog and light theme', async () => {
-  await page.click('.titlebar-actions .icon-btn:nth-child(4)')
+  await page.click('.titlebar-actions .icon-btn:nth-child(5)')
   await page.waitForSelector('.settings')
   await page.waitForTimeout(400)
   await shot('10-settings')

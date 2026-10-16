@@ -29,6 +29,17 @@ function feature(label: string, ok: boolean, note = ''): Line {
   return { text: `${head}${m.text}${note}`, styled: `${head}${m.styled}${note ? `${DIM}${note}${RESET}` : ''}` }
 }
 
+function drawBox(lines: Line[]): string {
+  const width = Math.max(...lines.map((l) => [...l.text].length)) + 4
+  const row = (l: Line): string => {
+    const len = [...l.text].length
+    const left = l.center ? Math.floor((width - len) / 2) : 2
+    const right = width - len - left
+    return `│${' '.repeat(left)}${l.styled}${' '.repeat(right)}│`
+  }
+  return [`┌${'─'.repeat(width)}┐`, ...lines.map(row), `└${'─'.repeat(width)}┘`, ''].join('\r\n')
+}
+
 export function buildBanner(info: BannerInfo): string {
   const title = `• ${info.app} ${info.version} •`
   const lines: Line[] = [
@@ -46,12 +57,50 @@ export function buildBanner(info: BannerInfo): string {
       styled: `▸ ${CYAN}⌘P${RESET} commands · ${CYAN}⌘F${RESET} search · ${CYAN}⇧⌘M${RESET} monitor`
     }
   ]
-  const width = Math.max(...lines.map((l) => [...l.text].length)) + 4
-  const row = (l: Line): string => {
-    const len = [...l.text].length
-    const left = l.center ? Math.floor((width - len) / 2) : 2
-    const right = width - len - left
-    return `│${' '.repeat(left)}${l.styled}${' '.repeat(right)}│`
-  }
-  return [`┌${'─'.repeat(width)}┐`, ...lines.map(row), `└${'─'.repeat(width)}┘`, ''].join('\r\n')
+  return drawBox(lines)
+}
+
+/** What an HTTP environment provides. Header values are never printed — they may hold secrets. */
+export interface HttpBannerInfo {
+  name: string
+  baseUrl: string
+  token: 'keychain' | 'none' | 'unreadable'
+  headerNames: string[]
+  /** Headers left out because they need $TOKEN and none is saved. */
+  skippedHeaders: string[]
+  insecure: boolean
+}
+
+function field(label: string, value: string, styled = value): Line {
+  const head = `  ${label.padEnd(10)} `
+  return { text: `${head}${value}`, styled: `${head}${styled}` }
+}
+
+export function buildHttpBanner(info: HttpBannerInfo): string {
+  const headers = info.headerNames.length > 0 ? info.headerNames.join(', ') : '—'
+  const lines: Line[] = [
+    { text: `▸ HTTP environment · ${info.name}`, styled: `▸ HTTP environment · ${MAGENTA}${info.name}${RESET}` },
+    field('$BASE_URL', info.baseUrl, `${CYAN}${info.baseUrl}${RESET}`),
+    info.token === 'keychain'
+      ? field('$TOKEN', '✓ from Keychain', `${GREEN}✓${RESET} from Keychain`)
+      : info.token === 'unreadable'
+        ? field('$TOKEN', '✗ cannot read from Keychain — enter it again', `${RED}✗ cannot read from Keychain${RESET}${DIM} — enter it again${RESET}`)
+        : field('$TOKEN', '✗ not set', `${RED}✗${RESET}${DIM} not set${RESET}`),
+    field('headers', headers, `${DIM}${headers}${RESET}`),
+    ...(info.skippedHeaders.length > 0
+      ? [field('skipped', `${info.skippedHeaders.join(', ')} (needs $TOKEN)`, `${RED}${info.skippedHeaders.join(', ')}${RESET}${DIM} (needs $TOKEN)${RESET}`)]
+      : []),
+    ...(info.insecure ? [field('TLS', '✗ certificate not checked (-k)', `${RED}✗${RESET}${DIM} certificate not checked (-k)${RESET}`)] : []),
+    plain(''),
+    {
+      text: '▸ curl $BASE_URL/… — headers are added automatically',
+      styled: `▸ ${CYAN}curl $BASE_URL/…${RESET} — headers are added automatically`
+    },
+    {
+      text: '  to every curl in this tab: use another tab for other hosts',
+      styled: `${DIM}  to every curl in this tab: use another tab for other hosts${RESET}`
+    },
+    { text: '▸ ⇧⌘L command library', styled: `▸ ${CYAN}⇧⌘L${RESET} command library` }
+  ]
+  return drawBox(lines)
 }

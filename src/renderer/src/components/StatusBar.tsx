@@ -56,7 +56,7 @@ export function StatusBar() {
   const monitorEnabled = globalMonitoring && sessionMonitoring
   const history = monitors[monitorKeyFor(tab)]
   const snap = history?.latest
-  const isLocal = !tab || tab.kind === 'local'
+  const isLocal = !tab || tab.kind !== 'ssh'
 
   useFitPriority(rowRef, [snap, tab?.status, tab?.id, monitorEnabled])
 

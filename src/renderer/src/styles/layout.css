@@ -478,6 +478,12 @@
   cursor: col-resize;
 }
 
+/* Right-hand panels grab their left edge */
+.resize-handle.left {
+  left: -5px;
+  right: auto;
+}
+
 .resize-handle::after {
   content: '';
   position: absolute;

@@ -35,6 +35,17 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - Passwords and passphrases are encrypted with the macOS Keychain and never shown in the UI.
 - Host keys are checked on every connection (SHA-256 fingerprints, warning if a key changes).
 
+**Command library**
+- Save frequent commands once and run them with a double-click from the side panel (`⇧⌘L`) or from the command palette (`⌘P`).
+- Commands are **shared** (every connection) or **private** to one connection; *Run* presses Enter, *Insert* only types the command.
+- Placeholders: `{{id}}` or `{{limit:20}}` ask for a value before the command runs.
+- Stored in a plain `commands.json` you can edit by hand — changes appear in the app immediately; import and export to share a library between Macs or with your team.
+
+**HTTP environments (curl)**
+- A connection type for APIs with no SSH at all: a local terminal prepared for repeated `curl` requests to one server.
+- `$BASE_URL` and `$TOKEN` (token kept in the Keychain) are set in the shell, and your default headers (e.g. `Authorization: Bearer $TOKEN`) are added to every `curl` automatically.
+- Optional `curl -k` for self-signed certificates; keep the environment's typical requests in its own section of the command library.
+
 **SFTP browser and editor**
 - File panel next to the terminal with breadcrumbs, sorting by name, size or date, and a resizable width.
 - Instant filter for the current folder and recursive search on the server.
@@ -79,17 +90,17 @@ Screenshots were taken against a demo project; host and user names are placehold
 
 | File | Size |
 |---|---|
-| [download/Northshell-1.3.0-arm64.dmg](download/) | ~112 MB |
+| [download/Northshell-1.4.0-arm64.dmg](download/) | ~112 MB |
 
 The same file is attached to the [latest release](https://github.com/nikserbur/northshell/releases/latest). To check the download, compare its SHA-256 with [download/SHA256SUMS.txt](download/SHA256SUMS.txt):
 
 ```bash
-shasum -a 256 ~/Downloads/Northshell-1.3.0-arm64.dmg
+shasum -a 256 ~/Downloads/Northshell-1.4.0-arm64.dmg
 ```
 
 ### Install
 
-1. Open the downloaded `Northshell-1.3.0-arm64.dmg`.
+1. Open the downloaded `Northshell-1.4.0-arm64.dmg`.
 2. Drag **Northshell** onto the **Applications** folder in the window that appears.
 3. Eject the disk image (drag it to the Trash or press `⌘E` in Finder).
 4. Start Northshell from Applications, Launchpad or Spotlight.
@@ -130,7 +141,9 @@ Download the new DMG and drag Northshell into Applications again, replacing the 
 4. **Confirm the server key.** On the first connection Northshell shows the server's fingerprint. Compare it with the one from your hosting provider or from `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the server.
 5. **Work with files.** Drag files from Finder onto the SFTP panel to upload, double-click a file to edit it, press `⌘S` to save. Type in the filter field and press Enter to search the whole folder tree.
 6. **Watch the server.** The status bar shows live statistics; click it or press `⇧⌘M` for the full monitor.
-7. **Change the look.** Open **Settings → Appearance** (`⌘,`) to choose a theme and terminal colours.
+7. **Save frequent commands.** Press `⇧⌘L` to open the command library, click **+**, and choose whether the command is shared or belongs to one connection. Double-click a command to run it.
+8. **Work with an HTTP API.** Click **HTTP** at the bottom of the sidebar (or `⌥⌘N`), enter a base URL, an optional token and headers, then **Save & open**. In the terminal run `curl $BASE_URL/health` — the headers are added for you.
+9. **Change the look.** Open **Settings → Appearance** (`⌘,`) to choose a theme and terminal colours.
 
 ## Keyboard shortcuts
 
@@ -138,6 +151,8 @@ Download the new DMG and drag Northshell into Applications again, replacing the 
 |---|---|
 | New local terminal | `⌘T` |
 | New SSH session | `⌘N` |
+| New HTTP environment | `⌥⌘N` |
+| Command library | `⇧⌘L` |
 | Command palette | `⌘P` |
 | Close tab or editor | `⌘W` |
 | Switch tab | `⌘1` … `⌘9`, `⌃Tab`, `⌃⇧Tab` |
@@ -154,8 +169,9 @@ Download the new DMG and drag Northshell into Applications again, replacing the 
 - The interface runs sandboxed with context isolation and a strict Content Security Policy; every request to the main process is validated.
 - Remote commands for monitoring and search are fixed scripts with quoted arguments; a server-side search stops on its own after 13 seconds.
 - SFTP downloads never overwrite existing files and reject unsafe names; deleting a symlink never touches its target.
+- HTTP environments write their curl headers to a private temporary folder (owner-only permissions) that is deleted when the tab closes.
 
-App data lives in `~/Library/Application Support/Northshell/` (`sessions.json`, `settings.json`, `known_hosts.json`).
+App data lives in `~/Library/Application Support/Northshell/` (`sessions.json`, `commands.json`, `settings.json`, `known_hosts.json`).
 
 ## Northshell and other SSH clients for Mac
 

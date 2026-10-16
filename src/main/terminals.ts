@@ -2,8 +2,9 @@ import { homedir } from 'node:os'
 import * as pty from 'node-pty'
 import type { Client, ClientChannel } from 'ssh2'
 import { APP_NAME } from '@shared/brand'
-import type { AppSettings, MonitorSnapshot, OpenTarget, TabStatusEvent } from '@shared/types'
+import type { AppSettings, MonitorSnapshot, OpenTarget, SessionConfig, TabStatusEvent } from '@shared/types'
 import { DataBatcher } from './dataBatcher'
+import { prepareHttpShell } from './http/httpShell'
 import { RemoteMonitor } from './monitor/remoteMonitor'
 import type { PromptBroker } from './prompts'
 import { ConnectCancelled, connectSsh } from './ssh/connect'
@@ -14,6 +15,17 @@ interface Backend {
   write(data: string): void
   resize(cols: number, rows: number): void
   dispose(): void
+}
+
+interface ShellOptions {
+  env?: Record<string, string>
+  /** Shown in the tab and status bar; defaults to the shell path. */
+  endpoint?: string
+  startupCommand?: string
+  /** Runs once when the shell exits or the tab is closed. */
+  cleanup?: () => void
+  /** Extra details for the "connected" status event. */
+  status?: Pick<TabStatusEvent, 'tokenUnreadable'>
 }
 
 export interface TerminalDeps {
@@ -96,19 +108,28 @@ export class TerminalService {
     this.close(tabId)
     const gen = this.generation.get(tabId) ?? 0
     const [c, r] = clampSize(cols, rows)
-    if (target.kind === 'local') return this.openLocal(tabId, gen, c, r)
+    if (target.kind === 'local') return this.spawnShell(tabId, gen, c, r)
+    const session = target.kind === 'session' ? this.deps.sessions.get(target.sessionId) : undefined
+    if (session?.kind === 'http') return this.openHttp(tabId, gen, session, c, r)
     return this.openSsh(tabId, gen, target, c, r)
   }
 
-  private openLocal(tabId: string, gen: number, cols: number, rows: number): void {
+  private spawnShell(tabId: string, gen: number, cols: number, rows: number, opts: ShellOptions = {}): void {
     const settings = this.deps.settings()
     const shell = settings.localShell || process.env.SHELL || '/bin/zsh'
-    const proc = pty.spawn(shell, ['-l'], { name: 'xterm-256color', cols, rows, cwd: homedir(), env: loginEnv() })
+    let proc: pty.IPty
+    try {
+      proc = pty.spawn(shell, ['-l'], { name: 'xterm-256color', cols, rows, cwd: homedir(), env: { ...loginEnv(), ...opts.env } })
+    } catch (err) {
+      opts.cleanup?.()
+      throw err
+    }
     let disposed = false
     proc.onData((d) => {
       if (!disposed && this.isCurrent(tabId, gen)) this.batcher.push(tabId, d)
     })
     proc.onExit(({ exitCode }) => {
+      opts.cleanup?.()
       if (disposed) return
       this.backends.delete(tabId)
       this.status({ tabId, status: 'closed', message: `Process exited with code ${exitCode}` })
@@ -118,6 +139,7 @@ export class TerminalService {
       resize: (c, r) => proc.resize(c, r),
       dispose: () => {
         disposed = true
+        opts.cleanup?.()
         try {
           proc.kill()
         } catch {
@@ -125,7 +147,27 @@ export class TerminalService {
         }
       }
     })
-    this.status({ tabId, status: 'connected', endpoint: shell })
+    this.status({ tabId, status: 'connected', endpoint: opts.endpoint ?? shell, ...opts.status })
+    if (opts.startupCommand?.trim()) proc.write(`${opts.startupCommand.trim()}\r`)
+  }
+
+  /** HTTP environment: no remote connection, just a local shell with $BASE_URL, $TOKEN and curl headers. */
+  private openHttp(tabId: string, gen: number, session: SessionConfig, cols: number, rows: number): void {
+    const token = this.deps.sessions.getSecret(session.id)
+    const http = prepareHttpShell(session, token)
+    try {
+      this.deps.sessions.touch(session.id)
+      this.spawnShell(tabId, gen, cols, rows, {
+        env: http.env,
+        endpoint: http.endpoint,
+        startupCommand: session.startupCommand,
+        cleanup: http.dispose,
+        status: session.hasSecret && !token ? { tokenUnreadable: true } : undefined
+      })
+    } catch (err) {
+      http.dispose()
+      throw err
+    }
   }
 
   private async openSsh(
