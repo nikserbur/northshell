@@ -1,6 +1,6 @@
 appId: com.northshell.app
 productName: Northshell
-copyright: Copyright © 2026 Northshell contributors
+copyright: Copyright © 2026 Nikita Burakov
 directories:
   buildResources: build
   output: dist
@@ -22,7 +22,7 @@ mac:
     - target: dmg
       arch: [arm64]
   extendInfo:
-    NSHumanReadableCopyright: Copyright © 2026 Northshell contributors
+    NSHumanReadableCopyright: Copyright © 2026 Nikita Burakov
 dmg:
   title: "${productName} ${version}"
   artifactName: "${productName}-${version}-arm64.${ext}"
