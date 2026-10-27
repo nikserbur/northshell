@@ -25,7 +25,7 @@ const label = (text, x) =>
 const chrome = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
   <rect width="${W}" height="${BAR}" fill="#2b2e36"/>
   <circle cx="30" cy="28" r="12" fill="#ff5f57"/><circle cx="66" cy="28" r="12" fill="#febc2e"/><circle cx="102" cy="28" r="12" fill="#28c840"/>
-  <text x="${W / 2}" y="37" text-anchor="middle" font-family="-apple-system, Helvetica Neue" font-size="26" font-weight="600" fill="#d6d9e0">${name} ${pkg.version}</text>
+  <text x="${W / 2}" y="37" text-anchor="middle" font-family="-apple-system, Helvetica Neue" font-size="26" font-weight="600" fill="#d6d9e0">${name}</text>
   ${label(name, 280)}${label('Applications', 800)}
 </svg>`)
 
