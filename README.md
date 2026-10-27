@@ -233,6 +233,10 @@ End-to-end tests drive the built app with Playwright: run `npm run build && npm 
 
 Built with Electron, React, TypeScript, xterm.js, ssh2, node-pty and CodeMirror.
 
+## Questions and bug reports
+
+Found a bug or have a question? [Open an issue](https://github.com/nikserbur/northshell/issues).
+
 ## License
 
 [MIT](LICENSE)

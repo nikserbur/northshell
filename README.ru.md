@@ -233,6 +233,10 @@ E2E-тесты управляют собранным приложением че
 
 Собрано на Electron, React, TypeScript, xterm.js, ssh2, node-pty и CodeMirror.
 
+## Вопросы и ошибки
+
+Нашли ошибку или есть вопрос? [Создайте issue](https://github.com/nikserbur/northshell/issues).
+
 ## Лицензия
 
 [MIT](LICENSE)
