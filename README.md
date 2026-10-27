@@ -12,7 +12,7 @@ A free, open-source MobaXterm alternative for macOS: an SSH client and terminal 
 
 [Download](#installation) · [Features](#features) · [Screenshots](#screenshots) · [Getting started](#getting-started) · [Build from source](#building-from-source) · [Русский](README.ru.md)
 
-<img src="docs/screenshots/main.png" alt="Northshell main window: sessions, SFTP browser, terminal and server monitor" />
+<img src="docs/screenshots/main.png" alt="Northshell main window: sessions, SFTP browser, terminal, command library and server monitor" />
 
 </div>
 
@@ -41,10 +41,14 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - Placeholders: `{{id}}` or `{{limit:20}}` ask for a value before the command runs.
 - Stored in a plain `commands.json` you can edit by hand — changes appear in the app immediately; import and export to share a library between Macs or with your team.
 
+<img src="docs/screenshots/command-library.png" width="720" alt="Command library panel next to the terminal: commands private to the connection and shared commands, with two of them already run" />
+
 **HTTP environments (curl)**
 - A connection type for APIs with no SSH at all: a local terminal prepared for repeated `curl` requests to one server.
 - `$BASE_URL` and `$TOKEN` (token kept in the Keychain) are set in the shell, and your default headers (e.g. `Authorization: Bearer $TOKEN`) are added to every `curl` automatically.
 - Optional `curl -k` for self-signed certificates; keep the environment's typical requests in its own section of the command library.
+
+<img src="docs/screenshots/http-environment.png" width="720" alt="New HTTP environment dialog: base URL, token, curl headers and the SSH / HTTP switch" />
 
 **SFTP browser and editor**
 - File panel next to the terminal with breadcrumbs, sorting by name, size or date, and a resizable width.
