@@ -75,14 +75,14 @@ MobaXterm — популярный SSH-инструмент «всё в одно
 
 **Требования:** macOS 13 Ventura или новее, Mac на Apple Silicon (M1–M4).
 
-**Скачать:** [download/Northshell-1.4.0-arm64.dmg](download/) (около 112 МБ) или из [последнего релиза](https://github.com/nikserbur/northshell/releases/latest). Контрольная сумма — в [download/SHA256SUMS.txt](download/SHA256SUMS.txt):
+**Скачать:** [`Northshell-<version>-arm64.dmg`](https://github.com/nikserbur/northshell/releases/latest) (около 112 МБ) из списка **Assets** [последнего релиза](https://github.com/nikserbur/northshell/releases/latest). Контрольная сумма — в [SHA256SUMS.txt](https://github.com/nikserbur/northshell/releases/latest/download/SHA256SUMS.txt) того же релиза:
 
 ```bash
-shasum -a 256 ~/Downloads/Northshell-1.4.0-arm64.dmg
+shasum -a 256 ~/Downloads/Northshell-*-arm64.dmg
 ```
 
 **Установка**
-1. Откройте скачанный `Northshell-1.4.0-arm64.dmg`.
+1. Откройте скачанный `Northshell-<version>-arm64.dmg`.
 2. Перетащите **Northshell** в папку **Applications** в открывшемся окне.
 3. Извлеките образ диска (`⌘E` в Finder).
 4. Запустите Northshell из Applications, Launchpad или Spotlight.

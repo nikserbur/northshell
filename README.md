@@ -90,17 +90,17 @@ Screenshots were taken against a demo project; host and user names are placehold
 
 | File | Size |
 |---|---|
-| [download/Northshell-1.4.0-arm64.dmg](download/) | ~112 MB |
+| [`Northshell-<version>-arm64.dmg`](https://github.com/nikserbur/northshell/releases/latest) | ~112 MB |
 
-The same file is attached to the [latest release](https://github.com/nikserbur/northshell/releases/latest). To check the download, compare its SHA-256 with [download/SHA256SUMS.txt](download/SHA256SUMS.txt):
+Get the DMG from the **Assets** list of the [latest release](https://github.com/nikserbur/northshell/releases/latest). To check the download, compare its SHA-256 with [SHA256SUMS.txt](https://github.com/nikserbur/northshell/releases/latest/download/SHA256SUMS.txt) from the same release:
 
 ```bash
-shasum -a 256 ~/Downloads/Northshell-1.4.0-arm64.dmg
+shasum -a 256 ~/Downloads/Northshell-*-arm64.dmg
 ```
 
 ### Install
 
-1. Open the downloaded `Northshell-1.4.0-arm64.dmg`.
+1. Open the downloaded `Northshell-<version>-arm64.dmg`.
 2. Drag **Northshell** onto the **Applications** folder in the window that appears.
 3. Eject the disk image (drag it to the Trash or press `⌘E` in Finder).
 4. Start Northshell from Applications, Launchpad or Spotlight.
