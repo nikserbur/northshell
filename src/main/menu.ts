@@ -62,6 +62,7 @@ export function buildMenu(getWindow: () => BrowserWindow | null): void {
         { label: 'Toggle SFTP Browser', accelerator: 'CmdOrCtrl+Shift+F', click: send('toggle-sftp') },
         { label: 'Toggle Monitor', accelerator: 'CmdOrCtrl+Shift+M', click: send('toggle-monitor') },
         { label: 'Toggle Command Library', accelerator: 'CmdOrCtrl+Shift+L', click: send('toggle-commands') },
+        { label: 'Toggle HTTP Request Panel', accelerator: 'CmdOrCtrl+Shift+R', click: send('toggle-http') },
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },

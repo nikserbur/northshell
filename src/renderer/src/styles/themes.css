@@ -807,7 +807,8 @@
 }
 
 :root[data-theme='moba'] .sb-cpu svg,
-:root[data-theme='moba'] .sb-mem svg {
+:root[data-theme='moba'] .sb-mem svg,
+:root[data-theme='moba'] .sb-gpu svg {
   color: #3ed63e;
 }
 

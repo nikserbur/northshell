@@ -28,6 +28,7 @@ import type { SearchHit, SftpEntry } from '@shared/types'
 import { usePanelWidth } from '../../hooks/usePanelWidth'
 import { useT } from '../../lib/useT'
 import { errorMessage } from '../../lib/util'
+import { sendCommand } from '../../store/actions'
 import { useApp, type Tab } from '../../store/appStore'
 import { ContextMenu, type MenuEntry } from '../ContextMenu'
 import { TransferList } from '../TransferList'
@@ -64,6 +65,8 @@ export function SftpPanel({ tab }: { tab: Tab }) {
   const path = useApp((s) => s.sftpPaths[tab.id])
   const revision = useApp((s) => s.sftpRevision)
   const setSftpPath = useApp((s) => s.setSftpPath)
+  const follow = useApp((s) => s.settings.sftpFollowTerminal)
+  const terminalCwd = useApp((s) => s.terminalCwds[tab.id])
   const doneUploads = useApp(
     (s) => s.transfers.filter((x) => x.tabId === tab.id && x.direction === 'upload' && x.state === 'done').length
   )
@@ -118,9 +121,14 @@ export function SftpPanel({ tab }: { tab: Tab }) {
   useEffect(() => {
     if (!connected) return
     if (!path) {
+      if (follow && terminalCwd) {
+        setSftpPath(tab.id, terminalCwd)
+        return
+      }
       api
         .home(tab.id)
-        .then((home) => setSftpPath(tab.id, home))
+        // The terminal's folder may have arrived meanwhile; it wins.
+        .then((home) => !useApp.getState().sftpPaths[tab.id] && setSftpPath(tab.id, home))
         .catch((err: unknown) => setError(errorMessage(err)))
       return
     }
@@ -132,6 +140,19 @@ export function SftpPanel({ tab }: { tab: Tab }) {
   useEffect(() => {
     if ((doneUploads > 0 || revision > 0) && connected) reload()
   }, [doneUploads, revision]) // only refresh when an upload finishes or a file is saved
+
+  // `cd` in the terminal moves the panel; browsing the panel never types into the terminal on its own.
+  useEffect(() => {
+    if (follow && terminalCwd && terminalCwd !== useApp.getState().sftpPaths[tab.id]) setSftpPath(tab.id, terminalCwd)
+  }, [follow, terminalCwd, tab.id, setSftpPath])
+
+  const toggleFollow = (): void =>
+    void window.xmt.settings.set({ sftpFollowTerminal: !follow }).then((s) => useApp.getState().setSettings(s))
+
+  /** Single-quoted for any POSIX shell (and fish): `cd '/srv/it'\''s'`. */
+  const cdHere = (): void => {
+    if (path) sendCommand(tab.id, `cd '${path.replace(/'/g, `'\\''`)}'`, true)
+  }
 
   const updatePrefs = (patch: Partial<Prefs>): void => {
     setPrefs((p) => {
@@ -312,7 +333,14 @@ export function SftpPanel({ tab }: { tab: Tab }) {
         </button>
       </div>
 
-      {path && <PathBar path={path} onNavigate={navigate} />}
+      {path && (
+        <PathBar
+          path={path}
+          onNavigate={navigate}
+          follow={{ on: follow, toggle: toggleFollow }}
+          onCdHere={connected ? cdHere : undefined}
+        />
+      )}
 
       <div className="sftp-search">
         <Search size={13} />

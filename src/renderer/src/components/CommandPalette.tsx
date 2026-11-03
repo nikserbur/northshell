@@ -8,6 +8,7 @@ import {
   Plus,
   ScrollText,
   Search,
+  Send,
   Settings,
   SquareTerminal,
   Zap
@@ -129,6 +130,15 @@ export function CommandPalette({ onToggleSidebar, onToggleSftp }: { onToggleSide
         sub: '⇧⌘L',
         icon: <ScrollText size={15} />,
         run: () => setPanelOpen('commandsPanelOpen', !useApp.getState().settings.commandsPanelOpen)
+      },
+      {
+        id: 'a-http-panel',
+        group: t('actions'),
+        label: t('toggleHttpPanel'),
+        alias: `${en('toggleHttpPanel')} curl request api postman`,
+        sub: '⇧⌘R',
+        icon: <Send size={15} />,
+        run: () => setPanelOpen('httpPanelOpen', !useApp.getState().settings.httpPanelOpen)
       },
       {
         id: 'a-new-command',

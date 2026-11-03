@@ -1,14 +1,18 @@
-import { ChevronRight, PencilLine } from 'lucide-react'
+import { ChevronRight, FolderSync, PencilLine, SquareTerminal } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '../../lib/useT'
 
 interface PathBarProps {
   path: string
   onNavigate: (path: string) => void
+  /** Whether the panel follows `cd` in the terminal, and the toggle for it. */
+  follow?: { on: boolean; toggle: () => void }
+  /** Runs `cd` to this folder in the terminal. */
+  onCdHere?: () => void
 }
 
 /** Clickable breadcrumbs; click the pencil (or double-click) to type a path. */
-export function PathBar({ path, onNavigate }: PathBarProps) {
+export function PathBar({ path, onNavigate, follow, onCdHere }: PathBarProps) {
   const t = useT()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(path)
@@ -63,6 +67,21 @@ export function PathBar({ path, onNavigate }: PathBarProps) {
           </span>
         ))}
       </div>
+      {onCdHere && (
+        <button className="icon-btn sm" onClick={onCdHere} title={t('cdInTerminal')}>
+          <SquareTerminal size={12} />
+        </button>
+      )}
+      {follow && (
+        <button
+          className={`icon-btn sm ${follow.on ? 'on' : ''}`}
+          onClick={follow.toggle}
+          title={follow.on ? t('followTerminalOn') : t('followTerminalOff')}
+          aria-pressed={follow.on}
+        >
+          <FolderSync size={12} />
+        </button>
+      )}
       <button className="icon-btn sm" onClick={() => setEditing(true)} title={t('editPath')}>
         <PencilLine size={12} />
       </button>

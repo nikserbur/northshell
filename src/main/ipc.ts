@@ -3,8 +3,10 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron'
 import { z } from 'zod'
+import { HTTP_METHODS, type HttpRequestSpec } from '@shared/httpRequest'
 import { IPC } from '@shared/ipc'
 import type { PromptResponse } from '@shared/types'
+import type { HttpRequests } from './http/httpRunner'
 import type { PromptBroker } from './prompts'
 import type { SftpService } from './sftp/sftpService'
 import { parseSshConfig } from './ssh/sshConfig'
@@ -21,6 +23,7 @@ interface IpcDeps {
   terminals: TerminalService
   sftp: SftpService
   prompts: PromptBroker
+  http: HttpRequests
   setLocalMonitor: (on: boolean) => void
   onSettingsChanged: () => void
 }
@@ -39,6 +42,13 @@ const openTarget = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('quick'), target: quickTarget })
 ])
 const MAX_IMPORT_BYTES = 4 * 1024 * 1024
+const httpRequestSpec = z.object({
+  method: z.enum(HTTP_METHODS),
+  url: z.string().max(8192),
+  headers: z.string().max(16384),
+  body: z.string().max(1024 * 1024),
+  followRedirects: z.boolean()
+}) satisfies z.ZodType<HttpRequestSpec>
 const promptResponse = z.object({
   id,
   accepted: z.boolean(),
@@ -131,8 +141,12 @@ export function registerIpc(deps: IpcDeps): void {
   handle(IPC.termClose, (tabId) => {
     const t = id.parse(tabId)
     deps.sftp.dispose(t)
+    deps.http.cancel(t)
     deps.terminals.close(t)
   })
+
+  handle(IPC.httpSend, (tabId, spec) => deps.http.send(id.parse(tabId), httpRequestSpec.parse(spec)))
+  handle(IPC.httpCancel, (tabId) => deps.http.cancel(id.parse(tabId)))
 
   handle(IPC.sftpHome, (tabId) => deps.sftp.home(id.parse(tabId)))
   handle(IPC.sftpList, (tabId, path) => deps.sftp.list(id.parse(tabId), remotePath.parse(path)))

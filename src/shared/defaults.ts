@@ -24,9 +24,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   downloadDir: '',
   showHiddenFiles: false,
   confirmDelete: true,
+  sftpFollowTerminal: true,
+  ctrlASelectsCommand: true,
   sftpPanelOpen: true,
   sidebarOpen: true,
-  commandsPanelOpen: false
+  commandsPanelOpen: false,
+  httpPanelOpen: true
 }
 
 export const SESSION_COLORS = ['#5eead4', '#a78bfa', '#f472b6', '#fbbf24', '#60a5fa', '#f87171', '#4ade80', '#94a3b8']

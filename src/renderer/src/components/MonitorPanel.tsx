@@ -1,5 +1,6 @@
-import { Activity, Cpu, HardDrive, ListOrdered, MemoryStick, Network, Server } from 'lucide-react'
+import { Activity, Cpu, Gpu, HardDrive, ListOrdered, MemoryStick, Network, Server } from 'lucide-react'
 import { formatBytes, formatDuration, formatPercent, formatRate } from '@shared/format'
+import { gpuTotals } from '@shared/gpu'
 import { useT } from '../lib/useT'
 import { levelClass } from '../lib/util'
 import { monitorKeyFor } from '../store/actions'
@@ -43,11 +44,12 @@ export function MonitorPanel() {
   const s = history.latest
   const memPct = s.memTotal > 0 ? (s.memUsed / s.memTotal) * 100 : 0
   const swapPct = s.swapTotal > 0 ? (s.swapUsed / s.swapTotal) * 100 : 0
+  const gpu = gpuTotals(s.gpus)
   const entry = tab ? registry.get(tab.id) : undefined
   const connectedFor = tab?.connectedAt && tab.status === 'connected' ? (Date.now() - tab.connectedAt) / 1000 : 0
 
   return (
-    <section className="monitor">
+    <section className={`monitor ${gpu ? 'has-gpu' : ''}`}>
       <div className="mon-card">
         <div className="mon-title">
           <Server size={13} /> {t('system')}
@@ -103,6 +105,35 @@ export function MonitorPanel() {
         )}
         <Bar label={t('memory')} value={formatPercent(memPct)} pct={memPct} />
       </div>
+
+      {gpu && (
+        <div className="mon-card mon-gpu" title={gpu.shared ? t('gpuShared', { total: formatBytes(gpu.total) }) : undefined}>
+          <div className="mon-title">
+            <Gpu size={13} /> {t('gpu')}
+            {gpu.util !== null && (
+              <span className="mon-title-extra" title={t('gpuLoad', { n: Math.round(gpu.util) })}>
+                {Math.round(gpu.util)}%
+              </span>
+            )}
+          </div>
+          <div className="mon-big">
+            {formatBytes(gpu.used)}
+            <small>
+              / {gpu.shared ? '≈' : ''}
+              {formatBytes(gpu.total)}
+            </small>
+          </div>
+          <Sparkline values={history.vram} max={100} height={42} color="var(--spark-4, var(--warn))" />
+          <div className="mon-gpu-list">
+            {s.gpus.map((g, i) => {
+              const pct = g.memTotal > 0 ? (g.memUsed / g.memTotal) * 100 : 0
+              // With several GPUs each row carries its own load; a single GPU shows it in the title.
+              const label = s.gpus.length > 1 && g.util !== null ? `${g.name} · ${Math.round(g.util)}%` : g.name
+              return <Bar key={`${i}-${g.name}`} label={label} value={formatPercent(pct)} pct={pct} />
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="mon-card">
         <div className="mon-title">

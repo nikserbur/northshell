@@ -23,6 +23,7 @@ export const IPC = {
   termClose: 'term:close',
   termData: 'term:data',
   termStatus: 'term:status',
+  termCwd: 'term:cwd',
 
   sftpList: 'sftp:list',
   sftpHome: 'sftp:home',
@@ -38,6 +39,9 @@ export const IPC = {
   sftpCreateFile: 'sftp:create-file',
   sftpChmod: 'sftp:chmod',
   sftpSearch: 'sftp:search',
+
+  httpSend: 'http:send',
+  httpCancel: 'http:cancel',
 
   monitorSnapshot: 'monitor:snapshot',
   monitorLocal: 'monitor:local',

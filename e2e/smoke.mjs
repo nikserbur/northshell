@@ -3,6 +3,7 @@
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { tmpdir } from 'node:os'
+import { createServer } from 'node:http'
 import { join, resolve } from 'node:path'
 import { _electron as electron } from 'playwright-core'
 
@@ -16,6 +17,18 @@ const ssh = {
   user: process.env.XMT_E2E_SSH_USER,
   key: process.env.XMT_E2E_SSH_KEY
 }
+
+// Local API for the HTTP request panel: echoes what it receives.
+const api = createServer((req, res) => {
+  let body = ''
+  req.on('data', (c) => (body += c))
+  req.on('end', () => {
+    res.writeHead(201, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ method: req.method, url: req.url, headers: req.headers, body }))
+  })
+})
+await new Promise((r) => api.listen(0, '127.0.0.1', r))
+const apiBase = `http://127.0.0.1:${api.address().port}/api`
 
 let failures = 0
 let page = null
@@ -70,6 +83,29 @@ await step('local terminal runs a command (UTF-8 round trip)', async () => {
   await waitForFile(marker, 'hello-42 Привет')
 })
 
+await step('Ctrl+A selects the typed command: ⌫ deletes it, typing replaces it, a second Ctrl+A goes to line start', async () => {
+  const [deleted, replaced, lineStart] = ['ctrl-a-1.txt', 'ctrl-a-2.txt', 'ctrl-a-3.txt'].map((f) => join(dataDir, f))
+  await page.keyboard.type('seq 1 80\n')
+  await page.waitForTimeout(500)
+  await page.keyboard.type('echo WRONG-1')
+  await page.keyboard.press('Control+A')
+  await page.waitForTimeout(150)
+  await shot('02b-ctrl-a-selected')
+  await page.keyboard.press('Backspace')
+  await page.keyboard.type(`echo deleted > '${deleted}'\n`)
+  await waitForFile(deleted, 'deleted')
+  await page.keyboard.type('echo WRONG-2')
+  await page.keyboard.press('Control+A')
+  await page.keyboard.type(`echo replaced > '${replaced}'\n`)
+  await waitForFile(replaced, 'replaced')
+  await page.keyboard.type('echo second')
+  await page.keyboard.press('Control+A')
+  await page.keyboard.press('Control+A')
+  await page.keyboard.type(`echo first > '${lineStart}'; `)
+  await page.keyboard.press('Enter')
+  await waitForFile(lineStart, 'first')
+})
+
 await step('status bar shows local stats', async () => {
   await page.waitForFunction(() => document.querySelector('.statusbar')?.textContent?.includes('%'), null, { timeout: 15000 })
   await shot('02-local-terminal')
@@ -79,6 +115,11 @@ await step('monitor panel opens', async () => {
   await page.click('.sb-toggle')
   await page.waitForSelector('.monitor .mon-card', { timeout: 5000 })
   await page.waitForTimeout(3500)
+  // Apple Silicon always has a GPU: its share of unified memory shows in the bar and the monitor.
+  if (process.arch === 'arm64') {
+    await page.waitForSelector('.monitor.has-gpu .mon-gpu .bar-line', { timeout: 5000 })
+    await page.waitForSelector('.statusbar .sb-gpu', { state: 'attached', timeout: 3000 })
+  }
   await shot('03-monitor-local')
   await page.click('.sb-toggle')
 })
@@ -153,6 +194,42 @@ await step('HTTP environment: shell gets $BASE_URL and curl headers', async () =
   await shot('16-http-environment')
 })
 
+await step('HTTP request panel: sends a request without typing curl', async () => {
+  await page.click('.sidebar-footer .btn:nth-child(2)')
+  await page.waitForSelector('#http-base-url', { timeout: 3000 })
+  await page.fill('#http-base-url', apiBase)
+  await page.fill('#http-name', 'Local API')
+  await page.fill('#http-headers', 'X-E2E: yes')
+  await page.click('.modal-foot .btn.primary')
+  await page.waitForSelector('.tab.active:has-text("Local API")', { timeout: 5000 })
+  await page.waitForSelector('.http-panel', { timeout: 3000 })
+  await page.selectOption('.http-panel .http-method', 'POST')
+  await page.fill('.http-panel .http-line input', '/echo?x={{x:1}}')
+  await page.fill('.http-panel .http-param input', '42')
+  await page.click('.http-panel .http-tabs .segmented button:nth-child(2)')
+  await page.fill('.http-panel textarea', '{"a": 1}')
+  await page.click('.http-panel .http-line .btn.primary')
+  await page.waitForSelector('.http-status:has-text("201")', { timeout: 10000 })
+  const text = await page.textContent('.http-body')
+  for (const expected of ['"/api/echo?x=42"', '"x-e2e": "yes"', '"content-type": "application/json"', '"body": "{\\"a\\": 1}"']) {
+    if (!text?.includes(expected)) throw new Error(`response lacks ${expected}`)
+  }
+  await page.waitForTimeout(300)
+  await shot('17-http-request-panel')
+})
+
+await step('HTTP request panel: a pasted curl command fills the form', async () => {
+  await app.evaluate(({ clipboard }, cmd) => clipboard.writeText(cmd), `curl -X DELETE '${apiBase}/items/7' -H 'X-Trace: 9'`)
+  await page.fill('.http-panel .http-line input', '')
+  await page.focus('.http-panel .http-line input')
+  await page.keyboard.press('Meta+V')
+  await page.waitForFunction(() => document.querySelector('.http-panel .http-line input')?.value === '/items/7', null, { timeout: 3000 })
+  const method = await page.inputValue('.http-panel .http-method')
+  if (method !== 'DELETE') throw new Error(`method ${method}`)
+  await page.click('.http-panel .http-line .btn.primary')
+  await page.waitForFunction(() => document.querySelector('.http-body')?.textContent?.includes('"DELETE"'), null, { timeout: 10000 })
+})
+
 await step('command library panel closes', async () => {
   await page.click('.titlebar-actions .icon-btn:nth-child(3)')
   await page.waitForSelector('.cmd-panel', { state: 'detached', timeout: 3000 })
@@ -186,6 +263,14 @@ if (ssh.host && ssh.key && ssh.user) {
     await page.click('.term-host.active')
     await page.keyboard.type('echo "ssh-$((6*7))" > xmt-e2e-marker.txt\n')
     await page.waitForTimeout(800)
+  })
+
+  await step('SFTP panel follows cd in the terminal', async () => {
+    await page.click('.term-host.active')
+    await page.keyboard.type('cd /tmp\n')
+    await page.waitForSelector('.sftp-path .crumb.last:has-text("tmp")', { timeout: 6000 })
+    await page.keyboard.type('cd\n')
+    await page.waitForFunction(() => !document.querySelector('.sftp-path .crumb.last')?.textContent?.includes('tmp'), null, { timeout: 6000 })
   })
 
   await step('SFTP panel lists remote home (sees file created in shell)', async () => {
@@ -334,5 +419,6 @@ await step('settings dialog and light theme', async () => {
 })
 
 await app.close()
+api.close()
 console.log(failures === 0 ? '\nAll E2E steps passed' : `\n${failures} step(s) failed`)
 process.exit(failures === 0 ? 0 : 1)

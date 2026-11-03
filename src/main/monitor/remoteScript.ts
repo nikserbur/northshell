@@ -6,7 +6,10 @@ const LINUX_PROBE = [
   'echo @@uptime; cat /proc/uptime 2>/dev/null',
   'echo @@meminfo; grep -E "^(MemTotal|MemFree|MemAvailable|Buffers|Cached|SwapTotal|SwapFree):" /proc/meminfo 2>/dev/null',
   'echo @@net; tail -n +3 /proc/net/dev 2>/dev/null',
-  'echo @@ps; ps -eo pid=,pcpu=,pmem=,comm= --sort=-pcpu 2>/dev/null | head -n 8'
+  'echo @@ps; ps -eo pid=,pcpu=,pmem=,comm= --sort=-pcpu 2>/dev/null | head -n 8',
+  'echo @@nvsmi; [ -n "$NV" ] && $TO "$NV" --query-gpu=name,memory.total,memory.used,utilization.gpu --format=csv,noheader,nounits 2>/dev/null',
+  // amdgpu exposes VRAM counters in sysfs; connector entries (card0-DP-1) are skipped.
+  'echo @@amdgpu; for d in /sys/class/drm/card*/device; do case $d in *-*/device) continue;; esac; [ -r "$d/mem_info_vram_total" ] && echo "$(cat "$d/mem_info_vram_total" 2>/dev/null) $(cat "$d/mem_info_vram_used" 2>/dev/null || echo 0) $(cat "$d/gpu_busy_percent" 2>/dev/null || echo -)"; done'
 ]
 
 const DARWIN_PROBE = [
@@ -19,12 +22,15 @@ const DARWIN_PROBE = [
   'echo @@vmstat; vm_stat',
   'echo @@swap; sysctl -n vm.swapusage',
   'echo @@netstat; netstat -ib 2>/dev/null',
-  'echo @@ps; ps -Aceo pid=,pcpu=,pmem=,comm= -r 2>/dev/null | head -n 8'
+  'echo @@ps; ps -Aceo pid=,pcpu=,pmem=,comm= -r 2>/dev/null | head -n 8',
+  'echo @@gpu; ioreg -r -d 1 -w 0 -c IOAccelerator 2>/dev/null | grep -E "^[ |]*\\+-o|\\"(model|PerformanceStatistics)\\" ="',
+  'echo @@gpulimit; sysctl -n iogpu.wired_limit_mb 2>/dev/null || echo $(( $(sysctl -n debug.iogpu.wired_limit 2>/dev/null || echo 0) / 1048576 ))'
 ]
 
 /**
  * POSIX shell loop that prints a marker-delimited stats block every `intervalSec` seconds.
- * Linux reads /proc; macOS hosts use sysctl/vm_stat/netstat. Wrapped in `exec sh -c '…'`
+ * Linux reads /proc (plus nvidia-smi / amdgpu sysfs for video memory); macOS hosts use
+ * sysctl/vm_stat/netstat/ioreg. A hung nvidia-smi is cut off by `timeout`. Wrapped in `exec sh -c '…'`
  * so it works regardless of the login shell (bash, zsh, fish). The body must not contain single quotes.
  */
 export function remoteMonitorCommand(intervalSec: number): string {
@@ -32,6 +38,8 @@ export function remoteMonitorCommand(intervalSec: number): string {
   const body = [
     'export LC_ALL=C',
     'OS=$(uname -s)',
+    'NV=$(command -v nvidia-smi 2>/dev/null)',
+    'TO=; command -v timeout >/dev/null 2>&1 && TO="timeout 5"',
     'while :; do',
     'echo @@XMT_BEGIN',
     'echo @@uname; uname -snrm 2>/dev/null',

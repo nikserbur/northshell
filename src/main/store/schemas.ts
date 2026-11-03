@@ -84,9 +84,12 @@ export const settingsShape = z.object({
     downloadDir: z.string().max(1024),
     showHiddenFiles: z.boolean(),
     confirmDelete: z.boolean(),
+    sftpFollowTerminal: z.boolean(),
+    ctrlASelectsCommand: z.boolean(),
     sftpPanelOpen: z.boolean(),
     sidebarOpen: z.boolean(),
-    commandsPanelOpen: z.boolean()
+    commandsPanelOpen: z.boolean(),
+    httpPanelOpen: z.boolean()
 })
 
 export const settingsPatchSchema = settingsShape.partial().strict()

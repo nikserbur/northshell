@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { parseDarwinMemory } from './parseDarwin'
+import { appleGpuLimit } from './parseGpu'
 import { BlockSplitter, StatsTracker, parsePs, parseRemoteBlock } from './parseRemote'
 
 const block = (stat: string, rx: number, tx: number): string => `@@uname
@@ -212,5 +214,70 @@ describe('parseRemoteBlock (macOS host)', () => {
   it('collapses APFS system volumes into a single root disk', () => {
     expect(raw.disks.map((d) => d.mount)).toEqual(['/', '/Volumes/USB Stick'])
     expect(raw.disks[0].used).toBe(500000000 * 1024)
+  })
+})
+
+/** `vm_stat` of a 16 GB M1 Pro, taken while Activity Monitor showed ≈11.5 GB "Memory Used". */
+const REAL_VM_STAT = `Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                               12200.
+Pages active:                            343546.
+Pages inactive:                          342561.
+Pages speculative:                          491.
+Pages throttled:                              0.
+Pages wired down:                        139928.
+Pages purgeable:                          11548.
+"Translation faults":                2909647230.
+Pages copy-on-write:                  354140907.
+File-backed pages:                       230923.
+Anonymous pages:                         455675.
+Pages stored in compressor:              588355.
+Pages occupied by compressor:            168668.
+Swapouts:                                460814.`.split('\n')
+
+describe('parseDarwinMemory', () => {
+  it('counts memory like Activity Monitor: app (anonymous − purgeable) + wired + compressed', () => {
+    const mem = parseDarwinMemory(['17179869184'], REAL_VM_STAT, ['total = 3072.00M  used = 1663.56M  free = 1408.44M  (encrypted)'])
+    expect(mem.memUsed).toBe((455675 - 11548 + 139928 + 168668) * 16384)
+    expect(mem.memUsed / 1024 ** 3).toBeCloseTo(11.49, 2)
+    expect(mem.swapUsed).toBeCloseTo(1663.56 * 1024 * 1024, 0)
+  })
+
+  it('matches the local monitor (systeminformation uses the same Activity Monitor formula)', () => {
+    const pages = (name: string): number => Number(REAL_VM_STAT.find((l) => l.startsWith(name))?.split(':')[1].trim().replace('.', ''))
+    const local =
+      (pages('Anonymous pages') - pages('Pages purgeable') + pages('Pages wired down') + pages('Pages occupied by compressor')) * 16384
+    expect(parseDarwinMemory(['17179869184'], REAL_VM_STAT, []).memUsed).toBe(local)
+  })
+
+  it('falls back to active + wired + compressed when vm_stat has no anonymous page count', () => {
+    const old = REAL_VM_STAT.filter((l) => !l.startsWith('Anonymous') && !l.startsWith('File-backed'))
+    expect(parseDarwinMemory(['17179869184'], old, []).memUsed).toBe((343546 + 139928 + 168668) * 16384)
+  })
+})
+
+describe('parseRemoteBlock GPUs', () => {
+  it('reads NVIDIA and AMD video memory on Linux hosts', () => {
+    const raw = parseRemoteBlock(
+      block('cpu  1 0 1 7 1 0 0 0 0 0', 0, 0) +
+        '@@nvsmi\nNVIDIA GeForce RTX 4090, 24564, 2048, 31\n@@amdgpu\n17163091968 1073741824 12\n'
+    )
+    expect(raw.gpus.map((g) => [g.name, g.memUsed, g.util])).toEqual([
+      ['NVIDIA GeForce RTX 4090', 2048 * 1024 * 1024, 31],
+      ['AMD GPU', 1073741824, 12]
+    ])
+  })
+
+  it('estimates the GPU share of unified memory on Apple Silicon hosts', () => {
+    const raw = parseRemoteBlock(
+      darwinBlock +
+        '@@gpu\n+-o AGXAcceleratorG14X  <class AGXAcceleratorG14X>\n    "PerformanceStatistics" = {"Device Utilization %"=12,"In use system memory"=1073741824}\n    "model" = "Apple M2"\n@@gpulimit\n0\n'
+    )
+    expect(raw.gpus).toEqual([
+      { name: 'Apple M2', memTotal: appleGpuLimit(17179869184, 0), memUsed: 1073741824, util: 12, shared: true }
+    ])
+  })
+
+  it('reports no GPUs when the host has none', () => {
+    expect(parseRemoteBlock(block('cpu  1 0 1 7 1 0 0 0 0 0', 0, 0)).gpus).toEqual([])
   })
 })

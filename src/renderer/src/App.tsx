@@ -8,6 +8,7 @@ import { PromptHost } from './components/dialogs/PromptHost'
 import { MonitorPanel } from './components/MonitorPanel'
 import { FileEditor } from './components/editor/FileEditor'
 import { editorBridge } from './components/editor/editorBridge'
+import { HttpPanel } from './components/http/HttpPanel'
 import { SftpPanel } from './components/sftp/SftpPanel'
 import { Sidebar } from './components/Sidebar'
 import { StatusBar } from './components/StatusBar'
@@ -61,6 +62,7 @@ export function App() {
   const dialog = useApp((s) => s.dialog)
   const paletteOpen = useApp((s) => s.paletteOpen)
   const monitorOpen = useApp((s) => s.monitorOpen)
+  const sessions = useApp((s) => s.sessions)
   const firstApply = useRef(true)
   const active = tabs.find((t) => t.id === activeId)
 
@@ -104,12 +106,13 @@ export function App() {
     void window.xmt.monitor.setLocal(wantsLocalStats && settings.monitorEnabled)
   }, [ready, wantsLocalStats, settings.monitorEnabled])
 
-  const toggleSetting = useCallback((key: 'sidebarOpen' | 'sftpPanelOpen' | 'commandsPanelOpen') => {
+  const toggleSetting = useCallback((key: 'sidebarOpen' | 'sftpPanelOpen' | 'commandsPanelOpen' | 'httpPanelOpen') => {
     setPanelOpen(key, !useApp.getState().settings[key])
   }, [])
   const toggleSidebar = useCallback(() => toggleSetting('sidebarOpen'), [toggleSetting])
   const toggleSftp = useCallback(() => toggleSetting('sftpPanelOpen'), [toggleSetting])
   const toggleCommands = useCallback(() => toggleSetting('commandsPanelOpen'), [toggleSetting])
+  const toggleHttp = useCallback(() => toggleSetting('httpPanelOpen'), [toggleSetting])
 
   useEffect(() => {
     const handle = (action: MenuAction): void => {
@@ -132,6 +135,9 @@ export function App() {
           break
         case 'toggle-commands':
           toggleCommands()
+          break
+        case 'toggle-http':
+          toggleHttp()
           break
         case 'close-tab':
           if (store.dialog) store.openDialog(null)
@@ -169,11 +175,12 @@ export function App() {
       }
     }
     return window.xmt.app.onMenu(handle)
-  }, [toggleSftp, toggleSidebar, toggleCommands])
+  }, [toggleSftp, toggleSidebar, toggleCommands, toggleHttp])
 
   if (!ready) return <div className="app" style={{ background: 'var(--surface-0)' }} />
 
   const showSftp = settings.sftpPanelOpen && active?.kind === 'ssh' && active.sftpEnabled
+  const httpSession = active?.kind === 'http' ? sessions.find((s) => s.id === active.sessionId) : undefined
 
   return (
     <div className="app">
@@ -182,6 +189,9 @@ export function App() {
         <TabBar sidebarOpen={settings.sidebarOpen} onShowSidebar={toggleSidebar} />
         <div className="workspace">
           {showSftp && active && <SftpPanel key={active.id} tab={active} />}
+          {settings.httpPanelOpen && active && httpSession && (
+            <HttpPanel key={active.id} tab={active} session={httpSession} onClose={toggleHttp} />
+          )}
           <TerminalArea />
           {settings.commandsPanelOpen && <CommandsPanel tab={active} onClose={toggleCommands} />}
         </div>

@@ -3,11 +3,14 @@ import * as pty from 'node-pty'
 import type { Client, ClientChannel } from 'ssh2'
 import { APP_NAME } from '@shared/brand'
 import type { AppSettings, MonitorSnapshot, OpenTarget, SessionConfig, TabStatusEvent } from '@shared/types'
+import { parseHeaders } from '@shared/httpEnv'
 import { DataBatcher } from './dataBatcher'
+import type { HttpEnvironment } from './http/httpRunner'
 import { prepareHttpShell } from './http/httpShell'
 import { RemoteMonitor } from './monitor/remoteMonitor'
 import type { PromptBroker } from './prompts'
 import { ConnectCancelled, connectSsh } from './ssh/connect'
+import { CwdFollower } from './ssh/cwdFollow'
 import type { KnownHostsStore } from './store/knownHosts'
 import type { SessionStore } from './store/sessionStore'
 
@@ -36,6 +39,8 @@ export interface TerminalDeps {
   sendData: (tabId: string, data: Uint8Array) => void
   sendStatus: (event: TabStatusEvent) => void
   sendMonitor: (tabId: string, snapshot: MonitorSnapshot) => void
+  /** Working directory of a tab's remote shell, for the SFTP panel to follow `cd`. */
+  sendCwd: (tabId: string, dir: string) => void
   onSshClosed: (tabId: string) => void
 }
 
@@ -61,6 +66,8 @@ export class TerminalService {
   private generation = new Map<string, number>()
   /** Aborts for SSH attempts still connecting (host-key / password prompts may be open). */
   private connecting = new Map<string, () => void>()
+  /** HTTP environment tabs: what the request panel needs to send requests like the tab's curl. */
+  private httpEnvs = new Map<string, HttpEnvironment>()
   private batcher: DataBatcher
 
   constructor(private readonly deps: TerminalDeps) {
@@ -74,6 +81,10 @@ export class TerminalService {
 
   clientFor(tabId: string): Client | undefined {
     return this.clients.get(tabId)
+  }
+
+  httpEnvironmentFor(tabId: string): HttpEnvironment | undefined {
+    return this.httpEnvs.get(tabId)
   }
 
   write(tabId: string, data: string): void {
@@ -155,17 +166,29 @@ export class TerminalService {
   private openHttp(tabId: string, gen: number, session: SessionConfig, cols: number, rows: number): void {
     const token = this.deps.sessions.getSecret(session.id)
     const http = prepareHttpShell(session, token)
+    const environment: HttpEnvironment = {
+      env: http.env,
+      baseUrl: http.endpoint,
+      token,
+      defaultHeaderNames: parseHeaders(session.headers).headers.map((h) => h.name)
+    }
+    const cleanup = (): void => {
+      // A reconnect may already have registered the next shell of this tab.
+      if (this.httpEnvs.get(tabId) === environment) this.httpEnvs.delete(tabId)
+      http.dispose()
+    }
     try {
       this.deps.sessions.touch(session.id)
+      this.httpEnvs.set(tabId, environment)
       this.spawnShell(tabId, gen, cols, rows, {
         env: http.env,
         endpoint: http.endpoint,
         startupCommand: session.startupCommand,
-        cleanup: http.dispose,
+        cleanup,
         status: session.hasSecret && !token ? { tokenUnreadable: true } : undefined
       })
     } catch (err) {
-      http.dispose()
+      cleanup()
       throw err
     }
   }
@@ -222,7 +245,7 @@ export class TerminalService {
         client.end()
         return
       }
-      this.attachSsh(tabId, gen, client, stream, endpoint, session?.startupCommand ?? '', session?.monitoring ?? true)
+      this.attachSsh(tabId, gen, client, stream, endpoint, session?.startupCommand ?? '', session?.monitoring ?? true, session?.sftp ?? true)
     } catch (err) {
       if (this.isCurrent(tabId, gen)) this.connecting.delete(tabId)
       if (this.generation.get(tabId) !== gen) return
@@ -241,7 +264,8 @@ export class TerminalService {
     stream: ClientChannel,
     endpoint: string,
     startupCommand: string,
-    monitoring: boolean
+    monitoring: boolean,
+    sftp: boolean
   ): void {
     const settings = this.deps.settings()
     let monitor: RemoteMonitor | null = null
@@ -249,9 +273,12 @@ export class TerminalService {
       monitor = new RemoteMonitor(client, settings.monitorInterval, (snap) => this.deps.sendMonitor(tabId, snap))
       monitor.start()
     }
+    const follower = sftp ? new CwdFollower(client, (dir) => this.isCurrent(tabId, gen) && this.deps.sendCwd(tabId, dir)) : null
+    follower?.start()
     let finished = false
     const finish = (message: string): void => {
       monitor?.stop()
+      follower?.stop()
       if (finished || this.generation.get(tabId) !== gen) return
       finished = true
       this.backends.delete(tabId)
@@ -277,6 +304,7 @@ export class TerminalService {
       resize: (c, r) => stream.setWindow(r, c, 0, 0),
       dispose: () => {
         monitor?.stop()
+        follower?.stop()
         this.deps.onSshClosed(tabId)
         client.end()
       }

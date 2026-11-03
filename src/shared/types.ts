@@ -82,9 +82,15 @@ export interface AppSettings {
   downloadDir: string
   showHiddenFiles: boolean
   confirmDelete: boolean
+  /** SFTP panel follows `cd` in the terminal of the same connection. */
+  sftpFollowTerminal: boolean
+  /** Ctrl+A selects the typed command (Windows-style): ⌫ deletes it, typing replaces it. */
+  ctrlASelectsCommand: boolean
   sftpPanelOpen: boolean
   sidebarOpen: boolean
   commandsPanelOpen: boolean
+  /** Request panel next to the terminal of an HTTP environment. */
+  httpPanelOpen: boolean
 }
 
 export interface QuickTarget {
@@ -124,6 +130,17 @@ export interface ProcessInfo {
   mem: number
 }
 
+export interface GpuUsage {
+  name: string
+  /** Bytes of video memory; for shared-memory GPUs (Apple Silicon) the estimated share of RAM the GPU may use. */
+  memTotal: number
+  memUsed: number
+  /** Busy percentage, when the driver reports it. */
+  util: number | null
+  /** Unified memory shared with the CPU: `memTotal` is an estimate and `memUsed` is also counted in RAM. */
+  shared: boolean
+}
+
 export interface MonitorSnapshot {
   ts: number
   hostname: string
@@ -135,6 +152,8 @@ export interface MonitorSnapshot {
   memUsed: number
   swapTotal: number
   swapUsed: number
+  /** Video memory per GPU; empty when the host has no GPU the monitor can read. */
+  gpus: GpuUsage[]
   disks: DiskUsage[]
   netRx: number
   netTx: number
@@ -268,6 +287,7 @@ export type MenuAction =
   | 'toggle-sidebar'
   | 'toggle-monitor'
   | 'toggle-commands'
+  | 'toggle-http'
   | 'new-http'
   | 'find'
   | 'clear'

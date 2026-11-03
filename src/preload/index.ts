@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
+import type { HttpRequestSpec, HttpResponseInfo } from '@shared/httpRequest'
 import { IPC } from '@shared/ipc'
 import type {
   AppSettings,
@@ -52,7 +53,8 @@ const api = {
     resize: (tabId: string, cols: number, rows: number): void => ipcRenderer.send(IPC.termResize, tabId, cols, rows),
     close: (tabId: string): Promise<void> => ipcRenderer.invoke(IPC.termClose, tabId),
     onData: (cb: (tabId: string, data: Uint8Array) => void): (() => void) => listen(IPC.termData, cb),
-    onStatus: (cb: (event: TabStatusEvent) => void): (() => void) => listen(IPC.termStatus, cb)
+    onStatus: (cb: (event: TabStatusEvent) => void): (() => void) => listen(IPC.termStatus, cb),
+    onCwd: (cb: (tabId: string, dir: string) => void): (() => void) => listen(IPC.termCwd, cb)
   },
   sftp: {
     home: (tabId: string): Promise<string> => ipcRenderer.invoke(IPC.sftpHome, tabId),
@@ -78,6 +80,10 @@ const api = {
     search: (tabId: string, dir: string, query: string): Promise<SearchResult> =>
       ipcRenderer.invoke(IPC.sftpSearch, tabId, dir, query),
     onTransfer: (cb: (info: TransferInfo) => void): (() => void) => listen(IPC.sftpTransfer, cb)
+  },
+  http: {
+    send: (tabId: string, spec: HttpRequestSpec): Promise<HttpResponseInfo> => ipcRenderer.invoke(IPC.httpSend, tabId, spec),
+    cancel: (tabId: string): Promise<void> => ipcRenderer.invoke(IPC.httpCancel, tabId)
   },
   monitor: {
     setLocal: (on: boolean): Promise<void> => ipcRenderer.invoke(IPC.monitorLocal, on),

@@ -313,6 +313,34 @@
   }
 }
 
+.monitor.has-gpu {
+  grid-template-columns: minmax(190px, 1.1fr) repeat(5, minmax(130px, 1fr)) minmax(240px, 1.4fr);
+}
+
+/* Seven cards are narrower: let "/ total" drop under the big number instead of being cut. */
+.monitor.has-gpu .mon-big {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  font-size: 23px;
+}
+
+.mon-title .mon-title-extra {
+  margin-left: auto;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-1);
+}
+
+.mon-gpu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .mon-card {
   background: var(--surface-1);
   padding: 14px 16px;
@@ -1279,4 +1307,317 @@ textarea.input {
 
 .tab-kind.closed {
   opacity: 0.45;
+}
+
+/* ───────────── HTTP request panel ───────────── */
+.http-panel {
+  max-width: 65%;
+}
+
+.http-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 10px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.http-line {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.http-line .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.http-line .input {
+  height: 32px;
+}
+
+.http-line .btn {
+  height: 32px;
+  flex: none;
+}
+
+.http-method {
+  width: 96px;
+  flex: none;
+  font: 650 11.5px var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.http-method.m-get {
+  color: var(--ok);
+}
+
+.http-method.m-post {
+  color: var(--warn);
+}
+
+.http-method.m-put,
+.http-method.m-patch {
+  color: var(--info);
+}
+
+.http-method.m-delete {
+  color: var(--danger);
+}
+
+.http-resolved {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 14px;
+  margin-top: -2px;
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+.http-resolved.err {
+  color: var(--danger);
+}
+
+.http-foreign {
+  flex: none;
+  margin-left: auto;
+  padding-left: 6px;
+  font-family: var(--font-sans, inherit);
+  color: var(--warn);
+}
+
+.http-params {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 8px;
+  align-items: center;
+  padding: 8px;
+  border-radius: var(--radius-s);
+  background: var(--accent-soft);
+}
+
+.http-params .field-label {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.http-param {
+  display: contents;
+}
+
+.http-param > span {
+  font-size: 11.5px;
+  color: var(--accent-fg);
+}
+
+.http-param .input {
+  height: 28px;
+}
+
+.http-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.segmented.sm {
+  padding: 2px;
+}
+
+.segmented.sm button {
+  height: 22px;
+  padding: 0 9px;
+  font-size: 11.5px;
+}
+
+.segmented button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.segmented .count {
+  font-size: 10px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.http-text {
+  height: auto;
+  padding: 8px 10px;
+  line-height: 1.45;
+  resize: vertical;
+  min-height: 64px;
+}
+
+.http-hint {
+  margin-top: -3px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.http-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.http-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 11.5px;
+  color: var(--text-1);
+  cursor: pointer;
+}
+
+.http-check input {
+  accent-color: var(--accent);
+}
+
+.http-response {
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.http-resp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.http-status {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font: 650 11.5px var(--font-mono);
+  color: var(--status-c);
+  background: color-mix(in oklab, var(--status-c) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--status-c) 35%, transparent);
+}
+
+.http-status.ok {
+  --status-c: var(--ok);
+}
+
+.http-status.info {
+  --status-c: var(--info);
+}
+
+.http-status.warn {
+  --status-c: var(--warn);
+}
+
+.http-status.bad {
+  --status-c: var(--danger);
+}
+
+.http-resp-meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.http-resp-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.http-resp-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.http-resp-empty svg {
+  color: var(--text-3);
+}
+
+.http-body {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-s);
+  background: var(--surface-0);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: 12px/1.5 var(--font-mono);
+  color: var(--text-0);
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.http-body .j-key {
+  color: var(--info);
+}
+
+.http-body .j-str {
+  color: var(--ok);
+}
+
+.http-body .j-num {
+  color: var(--warn);
+}
+
+.http-body .j-lit {
+  color: var(--violet, var(--danger));
+}
+
+.http-note {
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+
+.http-headers {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font: 11.5px/1.45 var(--font-mono);
+  user-select: text;
+}
+
+.http-headers > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 38%) minmax(0, 1fr);
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.http-headers dt {
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.http-headers dd {
+  margin: 0;
+  color: var(--text-0);
+  overflow-wrap: anywhere;
+}
+
+@container sftp (max-width: 380px) {
+  .http-actions .btn {
+    font-size: 0;
+    gap: 0;
+  }
 }

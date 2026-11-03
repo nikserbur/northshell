@@ -17,14 +17,21 @@ function initialScope(snippet: CommandSnippet | undefined, sessionId: string | u
   return snippet.sessionId || snippet.sessionName ? KEEP_MISSING : ''
 }
 
-export function CommandEditor({ snippet, sessionId }: { snippet?: CommandSnippet; sessionId?: string }) {
+interface Props {
+  snippet?: CommandSnippet
+  sessionId?: string
+  /** Prefilled name and command for a new entry (e.g. a request from the HTTP panel). */
+  draft?: { name: string; command: string }
+}
+
+export function CommandEditor({ snippet, sessionId, draft }: Props) {
   const t = useT()
   const sessions = useApp((s) => s.sessions)
   const openDialog = useApp((s) => s.openDialog)
   const known = useMemo(() => new Set(sessions.map((s) => s.id)), [sessions])
   const sorted = useMemo(() => [...sessions].sort((a, b) => a.name.localeCompare(b.name)), [sessions])
-  const [name, setName] = useState(snippet?.name ?? '')
-  const [command, setCommand] = useState(snippet?.command ?? '')
+  const [name, setName] = useState(snippet?.name ?? draft?.name ?? '')
+  const [command, setCommand] = useState(snippet?.command ?? draft?.command ?? '')
   const [scope, setScope] = useState(() => initialScope(snippet, sessionId, known))
   const [touched, setTouched] = useState(false)
   const [saving, setSaving] = useState(false)

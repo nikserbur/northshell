@@ -26,6 +26,7 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - Local shell and SSH sessions in tabs, powered by xterm.js with GPU rendering, true colour and full Unicode.
 - Find in output, clickable links, copy on select and right-click paste (optional).
 - Broadcast input to every connected tab (MultiExec), one-click reconnect.
+- `Ctrl+A` selects the command you are typing, as on Windows: `⌫` deletes it, typing replaces it; press `Ctrl+A` again to jump to the line start as usual (can be turned off in Settings).
 - Optional MobaXterm-style output highlighting (IP addresses, URLs, `error` / `warning` / `ok` keywords) and a session info box on connect.
 
 **Sessions and authentication**
@@ -47,18 +48,23 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - A connection type for APIs with no SSH at all: a local terminal prepared for repeated `curl` requests to one server.
 - `$BASE_URL` and `$TOKEN` (token kept in the Keychain) are set in the shell, and your default headers (e.g. `Authorization: Bearer $TOKEN`) are added to every `curl` automatically.
 - Optional `curl -k` for self-signed certificates; keep the environment's typical requests in its own section of the command library.
+- **HTTP request panel** (`⇧⌘R`): method, path, headers and body in a form instead of hand-written `curl` — `⌘↩` sends, and the response appears alongside with status, time, size, headers and highlighted JSON.
+- Paste a curl command (e.g. “Copy as cURL” from browser dev tools) into the address field and the form fills itself. `{{id}}` parameters are asked for right in the panel; a request can run in the terminal, be copied as curl or saved to the library and opened back in the form later.
 
 <img src="docs/screenshots/http-environment.png" width="720" alt="New HTTP environment dialog: base URL, token, curl headers and the SSH / HTTP switch" />
 
 **SFTP browser and editor**
 - File panel next to the terminal with breadcrumbs, sorting by name, size or date, and a resizable width.
+- The panel follows `cd` in the terminal of the same connection (toggle in the path bar); the terminal button there runs `cd` to the folder you are browsing. Nothing is typed into your shell to make this work.
 - Instant filter for the current folder and recursive search on the server.
 - Built-in editor with syntax highlighting for about 20 languages; `⌘S` saves straight to the server and warns if the file changed remotely in the meantime.
 - Upload by dragging files from Finder, download queue with progress, new file / folder, rename, delete, permissions (chmod).
 
 **Server monitoring**
-- Status bar with CPU, memory, disk, network, load, uptime and users for the active connection.
-- Monitor panel (`⇧⌘M`) with CPU, memory and network graphs, all disks, swap and top processes.
+- Status bar with CPU, memory, video memory (GPU), disk, network, load, uptime and users for the active connection.
+- Monitor panel (`⇧⌘M`) with CPU, memory, video memory and network graphs, all disks, swap and top processes.
+- Mac memory is counted like Activity Monitor's “Memory Used” (app + wired + compressed), the same for this Mac and for macOS servers.
+- Video memory: NVIDIA (`nvidia-smi`) and AMD (`amdgpu`) on Linux, and Mac GPUs. Apple Silicon shares memory with the CPU, so the GPU's share is macOS's estimate (⅔ of RAM up to 36 GB, ¾ above, or `iogpu.wired_limit_mb`), marked with “≈”.
 - No agent to install: statistics are read over the same SSH connection (Linux and macOS servers).
 
 **Appearance**
@@ -157,6 +163,7 @@ Download the new DMG and drag Northshell into Applications again, replacing the 
 | New SSH session | `⌘N` |
 | New HTTP environment | `⌥⌘N` |
 | Command library | `⇧⌘L` |
+| HTTP request panel | `⇧⌘R` |
 | Command palette | `⌘P` |
 | Close tab or editor | `⌘W` |
 | Switch tab | `⌘1` … `⌘9`, `⌃Tab`, `⌃⇧Tab` |

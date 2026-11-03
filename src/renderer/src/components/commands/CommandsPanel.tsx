@@ -15,18 +15,20 @@ import {
   Plus,
   ScrollText,
   Search,
+  Send,
   Share2,
   SquareTerminal,
   Trash2,
   X
 } from 'lucide-react'
 import { useMemo, useState, type MouseEvent } from 'react'
+import { isCurlCommand } from '@shared/httpRequest'
 import { groupSnippets, splitPlaceholders } from '@shared/snippets'
 import type { CommandSnippet } from '@shared/types'
 import { usePanelWidth } from '../../hooks/usePanelWidth'
 import { useT } from '../../lib/useT'
 import { errorMessage } from '../../lib/util'
-import { reloadCommands, removeCommand, runSnippet, saveCommand } from '../../store/actions'
+import { loadCurlIntoPanel, reloadCommands, removeCommand, runSnippet, saveCommand } from '../../store/actions'
 import { useApp, type Tab } from '../../store/appStore'
 import { ContextMenu, type MenuEntry } from '../ContextMenu'
 
@@ -184,6 +186,14 @@ export function CommandsPanel({ tab, onClose }: { tab: Tab | undefined; onClose:
     setShowAll(!showAll)
   }
 
+  /** A saved curl request goes back into the request panel's form, placeholders included. */
+  const openInPanel = (snippet: CommandSnippet): void => {
+    if (!tab) return
+    const warnings = loadCurlIntoPanel(tab.id, snippet.command)
+    if (warnings === null) toast({ kind: 'error', text: t('importCurlInvalid') })
+    else if (warnings.length > 0) toast({ kind: 'info', text: t('importCurlWarnings', { opts: warnings.join(', ') }) })
+  }
+
   const snippetMenu = (snippet: CommandSnippet): MenuEntry[] => {
     const scopeItem: MenuEntry[] =
       snippet.sessionId || snippet.sessionName
@@ -196,6 +206,9 @@ export function CommandsPanel({ tab, onClose }: { tab: Tab | undefined; onClose:
         ? ([
             { label: t('runCommand'), icon: <Play size={14} />, onClick: () => use(snippet, true) },
             { label: t('insertCommand'), icon: <CornerDownLeft size={14} />, onClick: () => use(snippet, false) },
+            ...(tab?.kind === 'http' && isCurlCommand(snippet.command)
+              ? [{ label: t('openInRequestPanel'), icon: <Send size={14} />, onClick: () => openInPanel(snippet) }]
+              : []),
             'separator'
           ] as MenuEntry[])
         : []),

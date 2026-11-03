@@ -1,4 +1,4 @@
-import { Activity, Command, Globe, House, PanelLeftOpen, Plus, Radio, ScrollText, Settings, SquareTerminal, X } from 'lucide-react'
+import { Activity, Command, Globe, House, PanelLeftOpen, Plus, Radio, ScrollText, Send, Settings, SquareTerminal, X } from 'lucide-react'
 import { useState, type DragEvent } from 'react'
 import { useT } from '../lib/useT'
 import { closeTab, openLocal, setPanelOpen } from '../store/actions'
@@ -17,6 +17,8 @@ export function TabBar({ sidebarOpen, onShowSidebar }: { sidebarOpen: boolean; o
   const setPalette = useApp((s) => s.setPalette)
   const openDialog = useApp((s) => s.openDialog)
   const commandsOpen = useApp((s) => s.settings.commandsPanelOpen)
+  const httpOpen = useApp((s) => s.settings.httpPanelOpen)
+  const activeIsHttp = tabs.find((x) => x.id === activeId)?.kind === 'http'
   const [dragIdx, setDragIdx] = useState<number | null>(null)
 
   const onDrop = (e: DragEvent, idx: number): void => {
@@ -114,6 +116,15 @@ export function TabBar({ sidebarOpen, onShowSidebar }: { sidebarOpen: boolean; o
         <button className="icon-btn" onClick={() => openDialog({ kind: 'settings' })} title={`${t('settings')} ⌘,`}>
           <Settings size={15} />
         </button>
+        {activeIsHttp && (
+          <button
+            className={`icon-btn http-toggle ${httpOpen ? 'on' : ''}`}
+            onClick={() => setPanelOpen('httpPanelOpen', !httpOpen)}
+            title={`${t('toggleHttpPanel')} ⇧⌘R`}
+          >
+            <Send size={15} />
+          </button>
+        )}
       </div>
     </header>
   )

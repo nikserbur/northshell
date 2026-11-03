@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { DEFAULT_SETTINGS } from '@shared/defaults'
+import { gpuTotals } from '@shared/gpu'
+import { emptyRequest, type HttpRequestSpec, type HttpResponseInfo } from '@shared/httpRequest'
 import type {
   AppSettings,
   CommandLibrary,
@@ -31,9 +33,32 @@ export interface MonitorHistory {
   latest: MonitorSnapshot
   cpu: number[]
   mem: number[]
+  /** Video memory in use, % of all GPUs; stays empty for hosts without a GPU. */
+  vram: number[]
   rx: number[]
   tx: number[]
 }
+
+export interface HttpHistoryItem {
+  id: string
+  spec: HttpRequestSpec
+  status: number
+  timeMs: number
+  at: number
+}
+
+/** Request panel of one HTTP environment tab: the form, values for {{placeholders}} and the last response. */
+export interface HttpPanelState {
+  spec: HttpRequestSpec
+  vars: Record<string, string>
+  pending: boolean
+  response?: HttpResponseInfo
+  /** Request could not be sent at all (bad URL, missing token…). */
+  error?: string
+}
+
+export const EMPTY_HTTP_PANEL: HttpPanelState = { spec: emptyRequest(), vars: {}, pending: false }
+const HTTP_HISTORY = 20
 
 export interface Toast {
   id: string
@@ -49,7 +74,8 @@ export interface EditorDoc extends RemoteFile {
 
 export type Dialog =
   | { kind: 'session-editor'; session?: SessionConfig; sessionKind?: SessionConfig['kind'] }
-  | { kind: 'command-editor'; snippet?: CommandSnippet; sessionId?: string }
+  | { kind: 'command-editor'; snippet?: CommandSnippet; sessionId?: string; draft?: { name: string; command: string } }
+  | { kind: 'http-import'; tabId: string }
   | { kind: 'command-vars'; snippet: CommandSnippet; tabId: string }
   | { kind: 'settings' }
   | { kind: 'confirm'; text: string; confirmLabel: string; danger?: boolean; onConfirm: () => void }
@@ -73,6 +99,8 @@ interface AppState {
   transfers: TransferInfo[]
   prompts: PromptRequest[]
   sftpPaths: Record<string, string>
+  /** Last known working directory of each SSH tab's shell. */
+  terminalCwds: Record<string, string>
   dialog: Dialog | null
   editor: EditorDoc | null
   sftpRevision: number
@@ -81,6 +109,9 @@ interface AppState {
   findOpen: boolean
   broadcast: boolean
   toasts: Toast[]
+  httpPanels: Record<string, HttpPanelState>
+  /** Recent requests per HTTP environment (session id), newest first; kept until the app quits. */
+  httpHistory: Record<string, HttpHistoryItem[]>
 
   init(settings: AppSettings, sessions: SessionConfig[]): void
   setSettings(settings: AppSettings): void
@@ -97,6 +128,7 @@ interface AppState {
   pushPrompt(req: PromptRequest): void
   popPrompt(id: string): void
   setSftpPath(tabId: string, path: string): void
+  setTerminalCwd(tabId: string, dir: string): void
   openDialog(dialog: Dialog | null): void
   setEditor(doc: EditorDoc | null): void
   bumpSftp(): void
@@ -104,6 +136,8 @@ interface AppState {
   setMonitorOpen(open: boolean): void
   setFindOpen(open: boolean): void
   setBroadcast(on: boolean): void
+  patchHttpPanel(tabId: string, patch: Partial<HttpPanelState>): void
+  addHttpHistory(sessionId: string, item: HttpHistoryItem): void
   toast(toast: Omit<Toast, 'id'>): void
   dismissToast(id: string): void
 }
@@ -119,6 +153,7 @@ export const useApp = create<AppState>((set) => ({
   transfers: [],
   prompts: [],
   sftpPaths: {},
+  terminalCwds: {},
   dialog: null,
   editor: null,
   sftpRevision: 0,
@@ -127,6 +162,8 @@ export const useApp = create<AppState>((set) => ({
   findOpen: false,
   broadcast: false,
   toasts: [],
+  httpPanels: {},
+  httpHistory: {},
 
   init: (settings, sessions) => set({ settings, sessions, ready: true }),
   setSettings: (settings) => set({ settings }),
@@ -141,11 +178,15 @@ export const useApp = create<AppState>((set) => ({
       const activeId = s.activeId === id ? (tabs[Math.min(idx, tabs.length - 1)]?.id ?? null) : s.activeId
       const { [id]: _m, ...monitors } = s.monitors
       const { [id]: _p, ...sftpPaths } = s.sftpPaths
+      const { [id]: _h, ...httpPanels } = s.httpPanels
+      const { [id]: _c, ...terminalCwds } = s.terminalCwds
       return {
         tabs,
         activeId,
         monitors,
         sftpPaths,
+        httpPanels,
+        terminalCwds,
         transfers: s.transfers.filter((t) => t.tabId !== id || t.state === 'running')
       }
     }),
@@ -161,6 +202,7 @@ export const useApp = create<AppState>((set) => ({
     set((s) => {
       const prev = s.monitors[id]
       const memPct = snapshot.memTotal > 0 ? (snapshot.memUsed / snapshot.memTotal) * 100 : 0
+      const gpu = gpuTotals(snapshot.gpus)
       return {
         monitors: {
           ...s.monitors,
@@ -168,6 +210,7 @@ export const useApp = create<AppState>((set) => ({
             latest: snapshot,
             cpu: pushHistory(prev?.cpu, snapshot.cpu),
             mem: pushHistory(prev?.mem, memPct),
+            vram: gpu ? pushHistory(prev?.vram, gpu.pct) : [],
             rx: pushHistory(prev?.rx, snapshot.netRx),
             tx: pushHistory(prev?.tx, snapshot.netTx)
           }
@@ -184,6 +227,8 @@ export const useApp = create<AppState>((set) => ({
   pushPrompt: (req) => set((s) => ({ prompts: [...s.prompts, req] })),
   popPrompt: (id) => set((s) => ({ prompts: s.prompts.filter((p) => p.id !== id) })),
   setSftpPath: (tabId, path) => set((s) => ({ sftpPaths: { ...s.sftpPaths, [tabId]: path } })),
+  setTerminalCwd: (tabId, dir) =>
+    set((s) => (s.tabs.some((t) => t.id === tabId) ? { terminalCwds: { ...s.terminalCwds, [tabId]: dir } } : s)),
   openDialog: (dialog) => set({ dialog }),
   setEditor: (editor) => set({ editor }),
   bumpSftp: () => set((s) => ({ sftpRevision: s.sftpRevision + 1 })),
@@ -191,6 +236,15 @@ export const useApp = create<AppState>((set) => ({
   setMonitorOpen: (monitorOpen) => set({ monitorOpen }),
   setFindOpen: (findOpen) => set({ findOpen }),
   setBroadcast: (broadcast) => set({ broadcast }),
+  // A request that finishes after its tab was closed must not bring the panel state back.
+  patchHttpPanel: (tabId, patch) =>
+    set((s) =>
+      s.tabs.some((t) => t.id === tabId)
+        ? { httpPanels: { ...s.httpPanels, [tabId]: { ...(s.httpPanels[tabId] ?? EMPTY_HTTP_PANEL), ...patch } } }
+        : s
+    ),
+  addHttpHistory: (sessionId, item) =>
+    set((s) => ({ httpHistory: { ...s.httpHistory, [sessionId]: [item, ...(s.httpHistory[sessionId] ?? [])].slice(0, HTTP_HISTORY) } })),
   toast: (toast) => {
     const id = crypto.randomUUID()
     set((s) => ({ toasts: [...s.toasts.slice(-3), { ...toast, id }] }))

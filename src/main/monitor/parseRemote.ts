@@ -1,5 +1,6 @@
-import type { DiskUsage, MonitorSnapshot, ProcessInfo } from '@shared/types'
+import type { DiskUsage, GpuUsage, MonitorSnapshot, ProcessInfo } from '@shared/types'
 import { parseDarwinMemory, parseNetstat, parseTopCpu } from './parseDarwin'
+import { parseAmdSysfs, parseDarwinGpus, parseNvidiaSmi } from './parseGpu'
 
 export interface CpuTimes {
   idle: number
@@ -19,6 +20,7 @@ export interface RawSample {
   memUsed: number
   swapTotal: number
   swapUsed: number
+  gpus: GpuUsage[]
   netRx: number
   netTx: number
   disks: DiskUsage[]
@@ -137,6 +139,9 @@ export function parseRemoteBlock(block: string): RawSample {
     .filter((l) => /^[\w.@-]+$/.test(l))
   const net = s.has('netstat') ? parseNetstat(get('netstat')) : parseNet(get('net'))
   const memory = s.has('memsize') ? parseDarwinMemory(get('memsize'), get('vmstat'), get('swap')) : parseMeminfo(get('meminfo'))
+  const gpus = s.has('gpu')
+    ? parseDarwinGpus(get('gpu'), memory.memTotal, num(get('gpulimit')[0]?.trim()))
+    : [...parseNvidiaSmi(get('nvsmi')), ...parseAmdSysfs(get('amdgpu'))]
   return {
     hostname: uname[1] ?? '',
     os: (get('os')[0] ?? '').trim() || [uname[0], uname[2], uname[3]].filter(Boolean).join(' '),
@@ -146,6 +151,7 @@ export function parseRemoteBlock(block: string): RawSample {
     load: [load[0] ?? 0, load[1] ?? 0, load[2] ?? 0],
     uptime: num((get('uptime')[0] ?? '').trim().split(/\s+/)[0]),
     ...memory,
+    gpus,
     netRx: net.rx,
     netTx: net.tx,
     disks: parseDf(get('df')),
@@ -196,6 +202,7 @@ export class StatsTracker {
       memUsed: raw.memUsed,
       swapTotal: raw.swapTotal,
       swapUsed: raw.swapUsed,
+      gpus: raw.gpus,
       disks: raw.disks,
       netRx,
       netTx,

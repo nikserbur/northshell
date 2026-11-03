@@ -2,7 +2,8 @@ import { execFile } from 'node:child_process'
 import { hostname, loadavg, uptime, cpus } from 'node:os'
 import { promisify } from 'node:util'
 import si from 'systeminformation'
-import type { DiskUsage, MonitorSnapshot } from '@shared/types'
+import type { DiskUsage, GpuUsage, MonitorSnapshot } from '@shared/types'
+import { parseDarwinGpus } from './parseGpu'
 import { parsePs } from './parseRemote'
 
 const run = promisify(execFile)
@@ -31,6 +32,24 @@ async function topProcesses(): Promise<MonitorSnapshot['processes']> {
   try {
     const { stdout } = await run('/bin/ps', ['-Aceo', 'pid=,pcpu=,pmem=,comm=', '-r'], { timeout: 3000 })
     return parsePs(stdout.split('\n').slice(0, 8))
+  } catch {
+    return []
+  }
+}
+
+const IOREG_LINE_RE = /^[ |]*\+-o|"(model|PerformanceStatistics)" =/
+
+/** GPU memory of this Mac from ioreg (same parser as for macOS servers). */
+async function localGpus(memTotal: number): Promise<GpuUsage[]> {
+  try {
+    const [{ stdout }, limit] = await Promise.all([
+      run('/usr/sbin/ioreg', ['-r', '-d', '1', '-w', '0', '-c', 'IOAccelerator'], { timeout: 3000, maxBuffer: 4 * 1024 * 1024 }),
+      run('/usr/sbin/sysctl', ['-n', 'iogpu.wired_limit_mb'], { timeout: 3000 }).then(
+        (r) => Number(r.stdout.trim()) || 0,
+        () => 0
+      )
+    ])
+    return parseDarwinGpus(stdout.split('\n').filter((l) => IOREG_LINE_RE.test(l)), memTotal, limit)
   } catch {
     return []
   }
@@ -75,6 +94,7 @@ export class LocalMonitor {
         topProcesses()
       ])
       const la = loadavg()
+      const gpus = await localGpus(mem.total)
       this.emit({
         ts: Date.now(),
         hostname: hostname(),
@@ -86,6 +106,7 @@ export class LocalMonitor {
         memUsed: mem.active,
         swapTotal: mem.swaptotal,
         swapUsed: mem.swapused,
+        gpus,
         disks: pickDisks(fs),
         netRx: net.reduce((a, n) => a + Math.max(0, n.rx_sec ?? 0), 0),
         netTx: net.reduce((a, n) => a + Math.max(0, n.tx_sec ?? 0), 0),

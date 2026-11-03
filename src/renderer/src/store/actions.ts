@@ -11,16 +11,19 @@ import {
 import { buildBanner, buildHttpBanner } from '@shared/banner'
 import { APP_NAME } from '@shared/brand'
 import { parseHeaders, usesToken } from '@shared/httpEnv'
-import { commandText, placeholders } from '@shared/snippets'
+import { parseCurlCommand, type HttpRequestSpec } from '@shared/httpRequest'
+import { commandText, fillPlaceholders, placeholders } from '@shared/snippets'
 import { makeT } from '../lib/i18n'
 import { errorMessage } from '../lib/util'
 import { registry } from '../terminal/registry'
-import { useApp, type Tab } from './appStore'
+import { EMPTY_HTTP_PANEL, useApp, type Tab } from './appStore'
 
 const api = (): typeof window.xmt => window.xmt
 const DIM = '\x1b[38;5;244m'
 const RED = '\x1b[38;5;203m'
 const RESET = '\x1b[0m'
+
+registry.setCommandSelectGuard(() => !useApp.getState().broadcast)
 
 /** Forwards terminal keystrokes to main; in broadcast mode to every connected tab. */
 registry.setInputHandler((tabId, data) => {
@@ -69,7 +72,7 @@ export function openSession(session: SessionConfig): string {
   )
 }
 
-type PanelKey = 'sidebarOpen' | 'sftpPanelOpen' | 'commandsPanelOpen'
+type PanelKey = 'sidebarOpen' | 'sftpPanelOpen' | 'commandsPanelOpen' | 'httpPanelOpen'
 
 /** Shows or hides a side panel; the choice is remembered in settings. */
 export function setPanelOpen(key: PanelKey, open: boolean): void {
@@ -148,6 +151,57 @@ export function removeCommand(id: string): Promise<boolean> {
 
 export function reloadCommands(): Promise<boolean> {
   return updateLibrary(api().commands.list())
+}
+
+/** Fills {{placeholders}} in every field of a request. */
+export function fillRequest(spec: HttpRequestSpec, vars: Record<string, string>): HttpRequestSpec {
+  const fill = (text: string): string => fillPlaceholders(text, vars)
+  return { ...spec, url: fill(spec.url), headers: fill(spec.headers), body: fill(spec.body) }
+}
+
+/** Sends the request panel's form of an HTTP tab and records the result. */
+export async function sendHttpRequest(tabId: string): Promise<void> {
+  const store = useApp.getState()
+  const tab = store.tabs.find((t) => t.id === tabId)
+  // The panel has no stored state until its form is first edited.
+  const panel = store.httpPanels[tabId] ?? EMPTY_HTTP_PANEL
+  if (!tab || panel.pending) return
+  const spec = fillRequest(panel.spec, panel.vars)
+  store.patchHttpPanel(tabId, { pending: true, error: undefined })
+  try {
+    const response = await api().http.send(tabId, spec)
+    useApp.getState().patchHttpPanel(tabId, { pending: false, response })
+    if (tab.sessionId) {
+      useApp.getState().addHttpHistory(tab.sessionId, {
+        id: crypto.randomUUID(),
+        spec: panel.spec,
+        status: response.status,
+        timeMs: response.timeMs,
+        at: Date.now()
+      })
+    }
+  } catch (err) {
+    useApp.getState().patchHttpPanel(tabId, { pending: false, error: errorMessage(err), response: undefined })
+  }
+}
+
+export function cancelHttpRequest(tabId: string): void {
+  void api().http.cancel(tabId)
+}
+
+/**
+ * Loads a curl command (pasted or from the library) into the request panel of an HTTP tab.
+ * Returns the options that could not be carried over, or null when the text is not a curl command.
+ */
+export function loadCurlIntoPanel(tabId: string, command: string): string[] | null {
+  const store = useApp.getState()
+  const tab = store.tabs.find((t) => t.id === tabId)
+  const session = tab?.sessionId ? store.sessions.find((s) => s.id === tab.sessionId) : undefined
+  const parsed = parseCurlCommand(command, session?.baseUrl ?? '')
+  if (!parsed) return null
+  store.patchHttpPanel(tabId, { spec: parsed.spec, response: undefined, error: undefined })
+  if (!store.settings.httpPanelOpen) setPanelOpen('httpPanelOpen', true)
+  return parsed.warnings
 }
 
 /** Local and HTTP tabs run on this Mac, so they show its stats. */
@@ -230,6 +284,7 @@ export function bindIpc(): () => void {
       if (ev.status === 'closed') registry.write(ev.tabId, `\r\n${DIM}— ${ev.message ?? 'Closed'} —${RESET}\r\n`)
       store.updateTab(ev.tabId, patch)
     }),
+    api().term.onCwd((tabId, dir) => useApp.getState().setTerminalCwd(tabId, dir)),
     api().commands.onChanged((library) => useApp.getState().setLibrary(library)),
     api().monitor.onSnapshot(({ id, snapshot }) => useApp.getState().pushMonitor(id, snapshot)),
     api().sftp.onTransfer((info) => {

@@ -29,8 +29,12 @@ export function parseDarwinMemory(
     const m = /^"?([^":]+)"?:\s+(\d+)\.?$/.exec(line.trim())
     if (m) pages.set(m[1], Number(m[2]))
   }
-  const usedPages =
-    (pages.get('Pages active') ?? 0) + (pages.get('Pages wired down') ?? 0) + (pages.get('Pages occupied by compressor') ?? 0)
+  // Activity Monitor's "Memory Used": app memory (anonymous − purgeable) + wired + compressed.
+  // vm_stat of very old macOS has no anonymous count; active pages are the closest stand-in there.
+  const anonymous = pages.get('Anonymous pages')
+  const appPages =
+    anonymous !== undefined ? Math.max(0, anonymous - (pages.get('Pages purgeable') ?? 0)) : (pages.get('Pages active') ?? 0)
+  const usedPages = appPages + (pages.get('Pages wired down') ?? 0) + (pages.get('Pages occupied by compressor') ?? 0)
   const swapLine = swap.join(' ')
   return {
     memTotal: num(memsize[0]?.trim()),

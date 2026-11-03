@@ -4,6 +4,7 @@ import { APP_NAME, LEGACY_APP_NAMES } from '@shared/brand'
 import { IPC } from '@shared/ipc'
 import { LOCAL_MONITOR_ID, type UiTheme } from '@shared/types'
 import { registerIpc } from './ipc'
+import { HttpRequests } from './http/httpRunner'
 import { sweepStaleHttpShells } from './http/httpShell'
 import { buildMenu } from './menu'
 import { LocalMonitor } from './monitor/localMonitor'
@@ -104,8 +105,10 @@ void app.whenReady().then(() => {
     sendData: (tabId, data) => send(IPC.termData, tabId, data),
     sendStatus: (event) => send(IPC.termStatus, event),
     sendMonitor: (tabId, snapshot) => send(IPC.monitorSnapshot, { id: tabId, snapshot }),
+    sendCwd: (tabId, dir) => send(IPC.termCwd, tabId, dir),
     onSshClosed: (tabId) => sftp?.dispose(tabId)
   })
+  const http = new HttpRequests((tabId) => terminals.httpEnvironmentFor(tabId))
   sftp = new SftpService(
     (tabId) => terminals.clientFor(tabId),
     (info) => send(IPC.sftpTransfer, info)
@@ -132,6 +135,7 @@ void app.whenReady().then(() => {
     terminals,
     sftp,
     prompts,
+    http,
     setLocalMonitor,
     onSettingsChanged: () => {
       nativeTheme.themeSource = nativeSource(settings.get().uiTheme)
@@ -144,6 +148,7 @@ void app.whenReady().then(() => {
     mainWindow = createWindow(settings)
     mainWindow.on('closed', () => {
       prompts.cancelAll()
+      http.cancelAll()
       terminals.closeAll()
       setLocalMonitor(false)
       mainWindow = null

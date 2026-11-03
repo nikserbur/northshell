@@ -1,6 +1,7 @@
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Clock, Cpu, Gauge, HardDrive, Laptop, MemoryStick, Users } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Clock, Cpu, Gauge, Gpu, HardDrive, Laptop, MemoryStick, Users } from 'lucide-react'
 import { useRef } from 'react'
 import { formatBytes, formatDuration, formatPercent, formatRate } from '@shared/format'
+import { gpuTotals } from '@shared/gpu'
 import type { DiskUsage } from '@shared/types'
 import { useFitPriority } from '../hooks/useFitPriority'
 import { useT } from '../lib/useT'
@@ -67,6 +68,16 @@ export function StatusBar() {
   const root = snap?.disks[0]
   const memPct = snap && snap.memTotal > 0 ? (snap.memUsed / snap.memTotal) * 100 : 0
   const rootPct = root ? diskPct(root) : 0
+  const gpu = gpuTotals(snap?.gpus)
+  const gpuTitle = gpu
+    ? [
+        ...(snap?.gpus ?? []).map(
+          (g) =>
+            `${g.name}: ${formatBytes(g.memUsed)} / ${g.shared ? '≈' : ''}${formatBytes(g.memTotal)}${g.util !== null ? ` · ${t('gpuLoad', { n: Math.round(g.util) })}` : ''}`
+        ),
+        ...(gpu.shared ? ['', t('gpuShared', { total: formatBytes(gpu.total) })] : [])
+      ].join('\n')
+    : ''
 
   return (
     <footer className="statusbar">
@@ -104,6 +115,20 @@ export function StatusBar() {
               </span>
               <Meter pct={memPct} />
             </button>
+            {gpu && (
+              <button className="sb-seg sb-click sb-gpu" data-priority="3" onClick={toggle} title={gpuTitle}>
+                <Gpu size={13} />
+                <span className="value">
+                  {formatBytes(gpu.used)}
+                  <span className="label">
+                    {' '}
+                    / {gpu.shared ? '≈' : ''}
+                    {formatBytes(gpu.total)}
+                  </span>
+                </span>
+                <Meter pct={gpu.pct} />
+              </button>
+            )}
             <div className="sb-seg sb-net" data-priority="3" title={t('network')}>
               <ArrowDown size={12} className="rx" />
               <span className="value">{formatRate(snap.netRx)}</span>
