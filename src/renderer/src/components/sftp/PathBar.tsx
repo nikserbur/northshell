@@ -67,6 +67,9 @@ export function PathBar({ path, onNavigate, follow, onCdHere }: PathBarProps) {
           </span>
         ))}
       </div>
+      <button className="icon-btn sm" onClick={() => setEditing(true)} title={t('editPath')}>
+        <PencilLine size={12} />
+      </button>
       {onCdHere && (
         <button className="icon-btn sm" onClick={onCdHere} title={t('cdInTerminal')}>
           <SquareTerminal size={12} />
@@ -82,9 +85,6 @@ export function PathBar({ path, onNavigate, follow, onCdHere }: PathBarProps) {
           <FolderSync size={12} />
         </button>
       )}
-      <button className="icon-btn sm" onClick={() => setEditing(true)} title={t('editPath')}>
-        <PencilLine size={12} />
-      </button>
     </div>
   )
 }

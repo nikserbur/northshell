@@ -84,8 +84,8 @@ export interface AppSettings {
   confirmDelete: boolean
   /** SFTP panel follows `cd` in the terminal of the same connection. */
   sftpFollowTerminal: boolean
-  /** Ctrl+A selects the typed command (Windows-style): ⌫ deletes it, typing replaces it. */
-  ctrlASelectsCommand: boolean
+  /** ⌘A in the terminal selects the typed command first (⌫ deletes it, typing replaces it). */
+  selectAllPicksCommand: boolean
   sftpPanelOpen: boolean
   sidebarOpen: boolean
   commandsPanelOpen: boolean

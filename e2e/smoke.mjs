@@ -56,6 +56,12 @@ if (process.env.XMT_E2E_DEBUG) {
   page.on('crash', () => console.log('[renderer] CRASHED'))
 }
 const shot = (name) => page.screenshot({ path: join(shots, `${name}.png`) })
+/** Waits for a file, then requires its exact content (a partial match hides half-deleted commands). */
+async function waitForExact(path, expected, timeout = 10000) {
+  await waitForFile(path, expected.trim(), timeout)
+  const text = readFileSync(path, 'utf8')
+  if (text !== expected) throw new Error(`${path}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(text)}`)
+}
 async function waitForFile(path, expected, timeout = 10000) {
   const until = Date.now() + timeout
   while (Date.now() < until) {
@@ -83,27 +89,55 @@ await step('local terminal runs a command (UTF-8 round trip)', async () => {
   await waitForFile(marker, 'hello-42 Привет')
 })
 
-await step('Ctrl+A selects the typed command: ⌫ deletes it, typing replaces it, a second Ctrl+A goes to line start', async () => {
-  const [deleted, replaced, lineStart] = ['ctrl-a-1.txt', 'ctrl-a-2.txt', 'ctrl-a-3.txt'].map((f) => join(dataDir, f))
+/** ⌘A as the window receives it (through Electron's input pipeline, like a real key press). */
+async function pressCmdA() {
+  await app.evaluate(({ BrowserWindow }) => {
+    const wc = BrowserWindow.getAllWindows()[0].webContents
+    wc.sendInputEvent({ type: 'keyDown', keyCode: 'A', modifiers: ['meta'] })
+    wc.sendInputEvent({ type: 'keyUp', keyCode: 'A', modifiers: ['meta'] })
+  })
+  await page.waitForTimeout(150)
+}
+
+await step('⌘A selects the typed command: ⌫ deletes it, typing replaces it; Ctrl+A stays line start', async () => {
+  const [deleted, replaced, lineStart] = ['cmd-a-1.txt', 'cmd-a-2.txt', 'cmd-a-3.txt'].map((f) => join(dataDir, f))
   await page.keyboard.type('seq 1 80\n')
   await page.waitForTimeout(500)
   await page.keyboard.type('echo WRONG-1')
-  await page.keyboard.press('Control+A')
-  await page.waitForTimeout(150)
-  await shot('02b-ctrl-a-selected')
+  await pressCmdA()
+  await shot('02b-cmd-a-selected')
   await page.keyboard.press('Backspace')
   await page.keyboard.type(`echo deleted > '${deleted}'\n`)
-  await waitForFile(deleted, 'deleted')
+  await waitForExact(deleted, 'deleted\n')
   await page.keyboard.type('echo WRONG-2')
-  await page.keyboard.press('Control+A')
+  await pressCmdA()
   await page.keyboard.type(`echo replaced > '${replaced}'\n`)
-  await waitForFile(replaced, 'replaced')
+  await waitForExact(replaced, 'replaced\n')
   await page.keyboard.type('echo second')
-  await page.keyboard.press('Control+A')
   await page.keyboard.press('Control+A')
   await page.keyboard.type(`echo first > '${lineStart}'; `)
   await page.keyboard.press('Enter')
-  await waitForFile(lineStart, 'first')
+  await waitForExact(lineStart, 'first\n')
+})
+
+await step('a word selected with the mouse inside the command is deleted by ⌫', async () => {
+  const size = join(dataDir, 'size.txt')
+  const marker = join(dataDir, 'mouse-delete.txt')
+  await page.keyboard.type(`echo "$COLUMNS $LINES" > '${size}'; PROMPT='$ '; clear\n`)
+  await waitForFile(size, ' ')
+  const [cols, rows] = readFileSync(size, 'utf8').trim().split(' ').map(Number)
+  await page.waitForTimeout(400)
+  await page.keyboard.type(`echo keep DROPME > '${marker}'`)
+  await page.waitForTimeout(500)
+  const box = await page.locator('.term-host.active .xterm-screen').boundingBox()
+  const cell = { w: box.width / cols, h: box.height / rows }
+  // "$ echo keep DROPME …": DROPME starts at column 12 of the first row.
+  await page.mouse.dblclick(box.x + cell.w * 14.5, box.y + cell.h / 2)
+  await page.waitForTimeout(200)
+  await shot('02c-mouse-selected')
+  await page.keyboard.press('Backspace')
+  await page.keyboard.press('Enter')
+  await waitForExact(marker, 'keep\n')
 })
 
 await step('status bar shows local stats', async () => {

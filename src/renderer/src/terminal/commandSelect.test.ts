@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { KILL_LINE, commandSelection, endsCommand, isTerminalReply, replaceSelected, type BufferLike } from './commandSelect'
+import {
+  KILL_LINE,
+  commandSelection,
+  deleteSelectionKeys,
+  endsCommand,
+  isTerminalReply,
+  replaceSelected,
+  type BufferLike
+} from './commandSelect'
 
 const COLS = 20
 
@@ -50,6 +58,42 @@ describe('commandSelection', () => {
   it('returns null when nothing is typed', () => {
     expect(commandSelection(buffer(['user@web:~$ ']), 20, { x: 12, y: 0 }, { x: 12, y: 0 })).toBeNull()
     expect(commandSelection(buffer(['']), 20, { x: 0, y: 0 }, null)).toBeNull()
+  })
+})
+
+describe('deleteSelectionKeys', () => {
+  // "$ echo keep DROP" — input starts at column 2, the cursor is after the last character.
+  const buf = buffer(['$ echo keep DROP'])
+  const cursor = { x: 16, y: 0 }
+  const start = { x: 2, y: 0 }
+  const sel = (from: number, to: number): { start: { x: number; y: number }; end: { x: number; y: number } } => ({
+    start: { x: from, y: 0 },
+    end: { x: to, y: 0 }
+  })
+
+  it('moves to the end of a word selected inside the command and deletes it', () => {
+    expect(deleteSelectionKeys(buf, 20, cursor, start, sel(7, 11), false)).toBe('\x1b[D'.repeat(5) + '\x7f'.repeat(4))
+    expect(deleteSelectionKeys(buf, 20, cursor, start, sel(12, 16), false)).toBe('\x7f'.repeat(4))
+  })
+
+  it('moves right when the cursor is before the selection, using application cursor keys when asked', () => {
+    expect(deleteSelectionKeys(buf, 20, { x: 2, y: 0 }, start, sel(7, 11), true)).toBe('\x1bOC'.repeat(9) + '\x7f'.repeat(4))
+  })
+
+  it('kills the whole line when everything typed is selected', () => {
+    expect(deleteSelectionKeys(buf, 20, cursor, start, sel(2, 16), false)).toBe(KILL_LINE)
+  })
+
+  it('counts a wide character once', () => {
+    expect(deleteSelectionKeys(buffer(['$ echo 你好 x']), 20, { x: 13, y: 0 }, start, sel(7, 11), false)).toBe(
+      '\x1b[D'.repeat(2) + '\x7f'.repeat(2)
+    )
+  })
+
+  it('leaves selections outside the command, or an unknown prompt end, to the shell', () => {
+    expect(deleteSelectionKeys(buf, 20, cursor, start, sel(0, 4), false)).toBeNull()
+    expect(deleteSelectionKeys(buf, 20, cursor, null, sel(7, 11), false)).toBeNull()
+    expect(deleteSelectionKeys(buffer(['old', '$ ls']), 20, { x: 4, y: 1 }, start, sel(2, 4), false)).toBeNull()
   })
 })
 

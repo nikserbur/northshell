@@ -1,5 +1,6 @@
 /**
- * Windows-style editing of the command being typed: Ctrl+A selects it, ⌫ deletes it, typing replaces it.
+ * Editor-style editing of the command being typed: ⌘A selects it, ⌫ deletes it, typing replaces it,
+ * and a mouse selection inside it is deleted or replaced the same way.
  * The terminal does not know where the shell prompt ends, so the input start is the cursor position
  * the shell left after its last output before the user began typing.
  */
@@ -71,11 +72,54 @@ export function commandSelection(buffer: BufferLike, cols: number, cursor: CellP
   return length > 0 ? { col: start.x, row: start.y, length } : null
 }
 
+export function isDeleteKey(data: string): boolean {
+  return data === '\x7f' || data === '\b' || data === '\x1b[3~'
+}
+
+/** Typed characters or a bracketed paste (not Enter, arrows or other control keys). */
+export function isTypedText(data: string): boolean {
+  return data.startsWith('\x1b[200~') || (data.length > 0 && data.charCodeAt(0) >= 0x20 && data.charCodeAt(0) !== 0x7f)
+}
+
 /** What to send for input arriving while the command is selected: delete keys clear it, text replaces it. */
 export function replaceSelected(data: string): { data: string; handled: boolean } {
-  if (data === '\x7f' || data === '\b' || data === '\x1b[3~') return { data: KILL_LINE, handled: true }
-  const isText = data.startsWith('\x1b[200~') || (data.length > 0 && data.charCodeAt(0) >= 0x20 && data.charCodeAt(0) !== 0x7f)
-  return isText ? { data: KILL_LINE + data, handled: true } : { data, handled: false }
+  if (isDeleteKey(data)) return { data: KILL_LINE, handled: true }
+  return isTypedText(data) ? { data: KILL_LINE + data, handled: true } : { data, handled: false }
+}
+
+/** Characters (wide ones once) in cells [from, to) counted from the start of `row`. */
+function charsBetween(buffer: BufferLike, cols: number, row: number, from: number, to: number): number {
+  let n = 0
+  for (let i = from; i < to; i++) {
+    if ((buffer.getLine(row + Math.floor(i / cols))?.getCell(i % cols)?.getWidth() ?? 1) !== 0) n++
+  }
+  return n
+}
+
+/**
+ * Keys that delete a selection lying inside the typed command: arrows to its end, then ⌫ over it
+ * (the whole command at once is a line kill). Null when the selection is not inside the command or
+ * the prompt's end is unknown — then the keys go to the shell unchanged.
+ */
+export function deleteSelectionKeys(
+  buffer: BufferLike,
+  cols: number,
+  cursor: CellPos,
+  inputStart: CellPos | null,
+  selection: { start: CellPos; end: CellPos },
+  appCursorKeys: boolean
+): string | null {
+  if (!inputStart) return null
+  const input = commandSelection(buffer, cols, cursor, inputStart)
+  if (!input || input.col !== inputStart.x || input.row !== inputStart.y) return null
+  const offset = (p: CellPos): number => (p.y - input.row) * cols + p.x - input.col
+  const [start, end, at] = [offset(selection.start), offset(selection.end), offset(cursor)]
+  if (start < 0 || end > input.length || start >= end) return null
+  if (start === 0 && end === input.length) return KILL_LINE
+  const count = (a: number, b: number): number => charsBetween(buffer, cols, input.row, input.col + a, input.col + b)
+  const [right, left] = appCursorKeys ? ['\x1bOC', '\x1bOD'] : ['\x1b[C', '\x1b[D']
+  const move = at <= end ? right.repeat(count(at, end)) : left.repeat(count(end, at))
+  return move + '\x7f'.repeat(count(start, end))
 }
 
 /** Input that ends the current command line, so the next shell output leads up to a fresh prompt. */
