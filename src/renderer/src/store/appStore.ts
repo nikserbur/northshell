@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { DEFAULT_SETTINGS } from '@shared/defaults'
 import { gpuTotals } from '@shared/gpu'
 import { emptyRequest, type HttpRequestSpec, type HttpResponseInfo } from '@shared/httpRequest'
+import type { TestResult } from '@shared/httpTests'
+import { emptyWorkspace, type HttpWorkspace } from '@shared/httpWorkspace'
 import type {
   AppSettings,
   CommandLibrary,
@@ -51,26 +53,39 @@ export interface DiskOwnersState {
   error?: string
 }
 
-export interface HttpHistoryItem {
+/** One request of a folder run. */
+export interface HttpRunResult {
   id: string
-  spec: HttpRequestSpec
+  name: string
+  method: string
   status: number
   timeMs: number
-  at: number
+  error?: string
+  tests: TestResult[]
 }
 
-/** Request panel of one HTTP environment tab: the form, values for {{placeholders}} and the last response. */
+export interface HttpRunState {
+  title: string
+  total: number
+  results: HttpRunResult[]
+  running: boolean
+}
+
+/** Request panel of one HTTP environment tab: the form and its last response. */
 export interface HttpPanelState {
   spec: HttpRequestSpec
-  vars: Record<string, string>
   pending: boolean
   response?: HttpResponseInfo
   /** Request could not be sent at all (bad URL, missing token…). */
   error?: string
+  testResults?: TestResult[]
+  /** The saved request this form was opened from, so edits can be saved back to it. */
+  savedId?: string
+  /** A folder run shown instead of the response. */
+  run?: HttpRunState
 }
 
-export const EMPTY_HTTP_PANEL: HttpPanelState = { spec: emptyRequest(), vars: {}, pending: false }
-const HTTP_HISTORY = 20
+export const EMPTY_HTTP_PANEL: HttpPanelState = { spec: emptyRequest(), pending: false }
 
 export interface Toast {
   id: string
@@ -88,6 +103,8 @@ export type Dialog =
   | { kind: 'session-editor'; session?: SessionConfig; sessionKind?: SessionConfig['kind'] }
   | { kind: 'command-editor'; snippet?: CommandSnippet; sessionId?: string; draft?: { name: string; command: string } }
   | { kind: 'http-import'; tabId: string }
+  | { kind: 'http-save'; tabId: string }
+  | { kind: 'http-code'; tabId: string }
   | { kind: 'command-vars'; snippet: CommandSnippet; tabId: string }
   | { kind: 'settings' }
   | { kind: 'confirm'; text: string; confirmLabel: string; danger?: boolean; onConfirm: () => void }
@@ -128,8 +145,8 @@ interface AppState {
   broadcast: boolean
   toasts: Toast[]
   httpPanels: Record<string, HttpPanelState>
-  /** Recent requests per HTTP environment (session id), newest first; kept until the app quits. */
-  httpHistory: Record<string, HttpHistoryItem[]>
+  /** Collections, variables and history of all HTTP environments, as stored by the main process. */
+  httpWorkspace: HttpWorkspace
 
   init(settings: AppSettings, sessions: SessionConfig[]): void
   setSettings(settings: AppSettings): void
@@ -158,7 +175,7 @@ interface AppState {
   setFindOpen(open: boolean): void
   setBroadcast(on: boolean): void
   patchHttpPanel(tabId: string, patch: Partial<HttpPanelState>): void
-  addHttpHistory(sessionId: string, item: HttpHistoryItem): void
+  setHttpWorkspace(workspace: HttpWorkspace): void
   toast(toast: Omit<Toast, 'id'>): void
   dismissToast(id: string): void
 }
@@ -187,7 +204,7 @@ export const useApp = create<AppState>((set) => ({
   broadcast: false,
   toasts: [],
   httpPanels: {},
-  httpHistory: {},
+  httpWorkspace: emptyWorkspace(),
 
   init: (settings, sessions) => set({ settings, sessions, ready: true }),
   setSettings: (settings) => set({ settings }),
@@ -281,8 +298,7 @@ export const useApp = create<AppState>((set) => ({
         ? { httpPanels: { ...s.httpPanels, [tabId]: { ...(s.httpPanels[tabId] ?? EMPTY_HTTP_PANEL), ...patch } } }
         : s
     ),
-  addHttpHistory: (sessionId, item) =>
-    set((s) => ({ httpHistory: { ...s.httpHistory, [sessionId]: [item, ...(s.httpHistory[sessionId] ?? [])].slice(0, HTTP_HISTORY) } })),
+  setHttpWorkspace: (httpWorkspace) => set({ httpWorkspace }),
   toast: (toast) => {
     const id = crypto.randomUUID()
     set((s) => ({ toasts: [...s.toasts.slice(-3), { ...toast, id }] }))

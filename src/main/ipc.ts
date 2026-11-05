@@ -88,7 +88,10 @@ export function registerIpc(deps: IpcDeps): void {
   })
   handle(IPC.sessionsDuplicate, (sid) => {
     const copy = deps.sessions.duplicate(id.parse(sid))
-    if (copy) deps.commands.copySession(id.parse(sid), copy.id)
+    if (copy) {
+      deps.commands.copySession(id.parse(sid), copy.id)
+      deps.httpStore.copySession(id.parse(sid), copy.id)
+    }
     return copy
   })
   handle(IPC.sessionsImport, async () => {

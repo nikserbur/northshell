@@ -8,6 +8,7 @@ import { PromptHost } from './components/dialogs/PromptHost'
 import { MonitorPanel } from './components/MonitorPanel'
 import { FileEditor } from './components/editor/FileEditor'
 import { editorBridge } from './components/editor/editorBridge'
+import { openCodeSearch } from './components/http/CodeView'
 import { HttpPanel } from './components/http/HttpPanel'
 import { SftpPanel } from './components/sftp/SftpPanel'
 import { Sidebar } from './components/Sidebar'
@@ -69,10 +70,11 @@ export function App() {
   useEffect(() => {
     document.title = APP_NAME
     const off = bindIpc()
-    void Promise.all([window.xmt.settings.get(), window.xmt.sessions.list(), window.xmt.commands.list(), loadFonts()]).then(
-      ([s, sessions, library]) => {
+    void Promise.all([window.xmt.settings.get(), window.xmt.sessions.list(), window.xmt.commands.list(), window.xmt.http.workspace(), loadFonts()]).then(
+      ([s, sessions, library, httpWorkspace]) => {
         applyTheme(s)
         useApp.getState().setLibrary(library)
+        useApp.getState().setHttpWorkspace(httpWorkspace)
         useApp.getState().init(s, sessions)
       }
     )
@@ -161,7 +163,7 @@ export function App() {
           break
         case 'find':
           if (store.editor) editorBridge.find()
-          else if (current) store.setFindOpen(true)
+          else if (!openCodeSearch() && current) store.setFindOpen(true)
           break
         case 'clear':
           if (current) registry.get(current.id)?.term.clear()

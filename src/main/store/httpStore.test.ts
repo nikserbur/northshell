@@ -46,6 +46,17 @@ describe('HttpStore', () => {
     expect(w.requests[0]).toMatchObject({ name: 'R', sessionId: 'env' })
   })
 
+  it('copies requests and variables to a duplicated environment', () => {
+    const s = store('copy.json')
+    s.saveRequest({ name: 'own', folder: '', sessionId: 'a', spec })
+    s.saveRequest({ name: 'shared', folder: '', spec })
+    s.setVars('a', { v: '1' })
+    const w = s.copySession('a', 'b')
+    expect(w.requests.filter((r) => r.sessionId === 'b').map((r) => r.name)).toEqual(['own'])
+    expect(w.vars.b).toEqual({ v: '1' })
+    expect(new Set(w.requests.map((r) => r.id)).size).toBe(3)
+  })
+
   it('forgets a deleted environment but keeps shared requests', () => {
     const s = store('d.json')
     s.saveRequest({ name: 'shared', folder: '', spec })
