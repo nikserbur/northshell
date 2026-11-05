@@ -3,15 +3,19 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron'
 import { z } from 'zod'
-import { HTTP_METHODS, type HttpRequestSpec } from '@shared/httpRequest'
+import { parseCollectionFile, toPostmanCollection } from '@shared/httpImport'
+import type { SavedRequest } from '@shared/httpWorkspace'
 import { IPC } from '@shared/ipc'
 import { LOCAL_MONITOR_ID, type PromptResponse } from '@shared/types'
+import { cookieJarPath, listCookies, removeCookies } from './http/cookieJar'
 import type { HttpRequests } from './http/httpRunner'
 import { scanDiskOwners } from './monitor/diskOwners'
 import type { PromptBroker } from './prompts'
 import type { SftpService } from './sftp/sftpService'
 import { parseSshConfig } from './ssh/sshConfig'
 import type { CommandStore } from './store/commandStore'
+import type { HttpStore } from './store/httpStore'
+import { httpHistoryItemSchema, httpRequestSpecSchema, httpVarsSchema, importedCollectionSchema, savedRequestInputSchema } from './store/schemas'
 import type { SessionStore } from './store/sessionStore'
 import type { SettingsStore } from './store/settingsStore'
 import type { TerminalService } from './terminals'
@@ -25,6 +29,8 @@ interface IpcDeps {
   sftp: SftpService
   prompts: PromptBroker
   http: HttpRequests
+  httpStore: HttpStore
+  cookiesDir: string
   setLocalMonitor: (on: boolean) => void
   setLocalMonitorDetail: (on: boolean) => void
   onSettingsChanged: () => void
@@ -44,13 +50,8 @@ const openTarget = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('quick'), target: quickTarget })
 ])
 const MAX_IMPORT_BYTES = 4 * 1024 * 1024
-const httpRequestSpec = z.object({
-  method: z.enum(HTTP_METHODS),
-  url: z.string().max(8192),
-  headers: z.string().max(16384),
-  body: z.string().max(1024 * 1024),
-  followRedirects: z.boolean()
-}) satisfies z.ZodType<HttpRequestSpec>
+const MAX_COLLECTION_BYTES = 64 * 1024 * 1024
+const cookieRef = z.object({ domain: z.string().max(512), path: z.string().max(4096), name: z.string().max(4096) })
 const promptResponse = z.object({
   id,
   accepted: z.boolean(),
@@ -81,6 +82,8 @@ export function registerIpc(deps: IpcDeps): void {
     } catch (err) {
       console.error('[commands] could not remove commands of a deleted session', err)
     }
+    deps.httpStore.removeSession(sessionId)
+    void removeCookies(cookieJarPath(deps.cookiesDir, sessionId))
     deps.sessions.remove(sessionId)
   })
   handle(IPC.sessionsDuplicate, (sid) => {
@@ -143,12 +146,66 @@ export function registerIpc(deps: IpcDeps): void {
   handle(IPC.termClose, (tabId) => {
     const t = id.parse(tabId)
     deps.sftp.dispose(t)
-    deps.http.cancel(t)
+    deps.http.dispose(t)
     deps.terminals.close(t)
   })
 
-  handle(IPC.httpSend, (tabId, spec) => deps.http.send(id.parse(tabId), httpRequestSpec.parse(spec)))
+  handle(IPC.httpSend, (tabId, spec) => deps.http.send(id.parse(tabId), httpRequestSpecSchema.parse(spec)))
   handle(IPC.httpCancel, (tabId) => deps.http.cancel(id.parse(tabId)))
+  handle(IPC.httpWorkspace, () => deps.httpStore.workspace())
+  handle(IPC.httpSaveRequest, (input) => deps.httpStore.saveRequest(savedRequestInputSchema.parse(input)))
+  handle(IPC.httpRemoveRequest, (rid) => deps.httpStore.removeRequest(id.parse(rid)))
+  handle(IPC.httpSetVars, (sid, vars) => deps.httpStore.setVars(id.parse(sid), httpVarsSchema.parse(vars)))
+  handle(IPC.httpAddHistory, (sid, item) => deps.httpStore.addHistory(id.parse(sid), httpHistoryItemSchema.parse(item)))
+  handle(IPC.httpClearHistory, (sid) => deps.httpStore.clearHistory(id.parse(sid)))
+  handle(IPC.httpImport, async (sid) => {
+    const win = deps.window()
+    if (!win) return null
+    const res = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: 'Postman / Insomnia', extensions: ['json'] }] })
+    const path = res.canceled ? undefined : res.filePaths[0]
+    if (!path) return null
+    if ((await stat(path)).size > MAX_COLLECTION_BYTES) throw new Error('This file is too large')
+    const parsed = parseCollectionFile(await readFile(path, 'utf8'))
+    const collection = importedCollectionSchema.parse({
+      ...parsed,
+      requests: parsed.requests.map((r) => ({ ...r, name: r.name.slice(0, 200) || 'Request', folder: r.folder.slice(0, 400) }))
+    })
+    return { workspace: deps.httpStore.addImported(id.parse(sid), collection), count: collection.requests.length }
+  })
+  handle(IPC.httpExport, async (sid, name) => {
+    const win = deps.window()
+    if (!win) return null
+    const sessionId = id.parse(sid)
+    const title = z.string().min(1).max(200).parse(name)
+    const workspace = deps.httpStore.workspace()
+    const requests: SavedRequest[] = workspace.requests.filter((r) => !r.sessionId || r.sessionId === sessionId)
+    const baseUrl = deps.sessions.list().find((s) => s.id === sessionId)?.baseUrl ?? ''
+    const res = await dialog.showSaveDialog(win, {
+      defaultPath: join(app.getPath('documents'), `${title.replace(/[^\p{L}\p{N}_-]+/gu, '-')}.postman_collection.json`),
+      filters: [{ name: 'Postman collection', extensions: ['json'] }]
+    })
+    if (res.canceled || !res.filePath) return null
+    await writeFile(res.filePath, toPostmanCollection(title, requests, workspace.vars[sessionId] ?? {}, baseUrl), { encoding: 'utf8', mode: 0o600 })
+    return res.filePath
+  })
+  handle(IPC.httpPickFile, async () => {
+    const win = deps.window()
+    if (!win) return null
+    const res = await dialog.showOpenDialog(win, { properties: ['openFile', 'showHiddenFiles'] })
+    return res.canceled ? null : (res.filePaths[0] ?? null)
+  })
+  handle(IPC.httpSaveResponse, async (tabId, name) => {
+    const win = deps.window()
+    if (!win) return null
+    const res = await dialog.showSaveDialog(win, { defaultPath: join(downloadDir(deps), z.string().min(1).max(255).parse(name).replace(/[/\\]/g, '_')) })
+    if (res.canceled || !res.filePath) return null
+    await deps.http.saveResponse(id.parse(tabId), res.filePath)
+    return res.filePath
+  })
+  handle(IPC.httpCookies, (sid) => listCookies(cookieJarPath(deps.cookiesDir, id.parse(sid))))
+  handle(IPC.httpRemoveCookies, (sid, cookie) =>
+    removeCookies(cookieJarPath(deps.cookiesDir, id.parse(sid)), cookie === undefined ? undefined : cookieRef.parse(cookie))
+  )
 
   handle(IPC.sftpHome, (tabId) => deps.sftp.home(id.parse(tabId)))
   handle(IPC.sftpList, (tabId, path) => deps.sftp.list(id.parse(tabId), remotePath.parse(path)))

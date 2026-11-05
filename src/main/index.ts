@@ -4,10 +4,12 @@ import { APP_NAME, LEGACY_APP_NAMES } from '@shared/brand'
 import { IPC } from '@shared/ipc'
 import { LOCAL_MONITOR_ID, type UiTheme } from '@shared/types'
 import { registerIpc } from './ipc'
+import { cookieJarPath } from './http/cookieJar'
 import { HttpRequests } from './http/httpRunner'
 import { sweepStaleHttpShells } from './http/httpShell'
 import { buildMenu } from './menu'
 import { LocalMonitor } from './monitor/localMonitor'
+import { HttpStore } from './store/httpStore'
 import { PromptBroker } from './prompts'
 import { SftpService } from './sftp/sftpService'
 import { CommandStore } from './store/commandStore'
@@ -108,7 +110,12 @@ void app.whenReady().then(() => {
     sendCwd: (tabId, dir) => send(IPC.termCwd, tabId, dir),
     onSshClosed: (tabId) => sftp?.dispose(tabId)
   })
-  const http = new HttpRequests((tabId) => terminals.httpEnvironmentFor(tabId))
+  const cookiesDir = join(dataDir, 'http-cookies')
+  const http = new HttpRequests(
+    (tabId) => terminals.httpEnvironmentFor(tabId),
+    (sessionId) => cookieJarPath(cookiesDir, sessionId)
+  )
+  const httpStore = new HttpStore(join(dataDir, 'http-workspace.json'))
   sftp = new SftpService(
     (tabId) => terminals.clientFor(tabId),
     (info) => send(IPC.sftpTransfer, info)
@@ -138,6 +145,8 @@ void app.whenReady().then(() => {
     sftp,
     prompts,
     http,
+    httpStore,
+    cookiesDir,
     setLocalMonitor,
     setLocalMonitorDetail: (on) => {
       localDetail = on

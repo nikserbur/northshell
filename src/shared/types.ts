@@ -91,6 +91,8 @@ export interface AppSettings {
   commandsPanelOpen: boolean
   /** Request panel next to the terminal of an HTTP environment. */
   httpPanelOpen: boolean
+  /** The request panel covers the terminal, as a full workspace. */
+  httpPanelExpanded: boolean
 }
 
 export interface QuickTarget {

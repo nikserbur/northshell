@@ -3,6 +3,11 @@
  * `$BASE_URL` and `$TOKEN` stay shell variables in generated commands; the main process expands them itself.
  */
 
+import { authHeaderLine, autoContentType, base64, looksLikeJson, requestData, withAuthQuery, type BodyKind, type FormField, type QueryParam, type RequestAuth } from './httpBody'
+import type { ExtractRule, TestRule } from './httpTests'
+
+export { looksLikeJson }
+
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
 export type HttpMethod = (typeof HTTP_METHODS)[number]
 
@@ -10,10 +15,28 @@ export interface HttpRequestSpec {
   method: HttpMethod
   /** Path relative to $BASE_URL (`/users?id=1`), `$BASE_URL/…`, or an absolute http(s) URL. */
   url: string
-  /** Extra headers, `Name: value` per line, on top of the environment's defaults. */
+  /** Extra headers, `Name: value` per line (`# Name: value` is switched off), on top of the environment's defaults. */
   headers: string
+  /** Text of a raw body, or the query of a GraphQL one. */
   body: string
   followRedirects: boolean
+  /** Left out by requests saved before body kinds existed. */
+  bodyKind?: BodyKind
+  /** Rows of a urlencoded or multipart form. */
+  form?: FormField[]
+  /** Local file sent as the whole body. */
+  filePath?: string
+  graphqlVariables?: string
+  auth?: RequestAuth
+  /** Query parameters switched off in the table; the switched-on ones live in `url`. */
+  disabledParams?: QueryParam[]
+  timeoutSec?: number
+  /** curl -k for this request, on top of the environment's own setting. */
+  insecure?: boolean
+  /** Send and keep cookies in the environment's cookie jar; on unless turned off. */
+  saveCookies?: boolean
+  tests?: TestRule[]
+  extract?: ExtractRule[]
 }
 
 export function emptyRequest(): HttpRequestSpec {
@@ -51,17 +74,6 @@ export function resolveRequestUrl(baseUrl: string, url: string): string | null {
   return full === baseUrl.replace(/\/+$/, '') && parsed.pathname === '/' && !full.endsWith('/') ? full : parsed.href
 }
 
-export function looksLikeJson(body: string): boolean {
-  const text = body.trim()
-  if (!/^[[{]/.test(text)) return false
-  try {
-    JSON.parse(text)
-    return true
-  } catch {
-    return false
-  }
-}
-
 function headerNames(text: string): string[] {
   return text
     .split('\n')
@@ -69,16 +81,21 @@ function headerNames(text: string): string[] {
     .filter(Boolean)
 }
 
-/** Request headers plus `Content-Type: application/json` for JSON bodies when nobody set a content type. */
+/**
+ * Request headers plus what the form implies: the auth header and a Content-Type for the body when nobody
+ * set them. A body kind picked in the form outranks the environment's default Content-Type.
+ */
 export function effectiveHeaders(spec: HttpRequestSpec, envHeaderNames: string[] = []): string[] {
   const lines = spec.headers
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith('#'))
-  const known = new Set([...headerNames(spec.headers), ...envHeaderNames.map((n) => n.toLowerCase())])
-  if (spec.method !== 'HEAD' && spec.body && !known.has('content-type') && looksLikeJson(spec.body)) {
-    lines.push('Content-Type: application/json')
-  }
+  const own = new Set(headerNames(lines.join('\n')))
+  const auth = authHeaderLine(spec.auth)
+  if (auth && !own.has(auth.slice(0, auth.indexOf(':')).trim().toLowerCase())) lines.push(auth)
+  const known = spec.bodyKind ? own : new Set([...own, ...envHeaderNames.map((n) => n.toLowerCase())])
+  const contentType = autoContentType(spec)
+  if (contentType && !known.has('content-type')) lines.push(`Content-Type: ${contentType}`)
   return lines
 }
 
@@ -100,19 +117,37 @@ function shellArg(text: string): string {
   return out || "''"
 }
 
+/** A file path for curl's -F: quoted, so commas and semicolons in the name stay part of it. */
+export function formFilePath(path: string): string {
+  return `@"${path.replace(/(["\\])/g, '\\$1')}"`
+}
+
 /** A curl command for the HTTP environment's shell (or the command library). */
 export function buildCurlCommand(spec: HttpRequestSpec, envHeaderNames: string[] = []): string {
   const head = spec.method === 'HEAD'
-  const body = head ? '' : spec.body
+  const data = requestData(spec)
+  const url = withAuthQuery(spec.url.trim(), spec.auth)
   const parts = ['curl', '-sS']
   if (head) parts.push('-I')
-  else if (spec.method !== 'GET' || body) parts.push('-X', spec.method)
+  else if (spec.method !== 'GET' || data.kind !== 'none') parts.push('-X', spec.method)
   if (spec.followRedirects) parts.push('-L')
+  if (spec.insecure) parts.push('-k')
+  if (spec.timeoutSec) parts.push('--max-time', String(spec.timeoutSec))
   // Without -g curl reads [] and {} in URLs (filter[status]=…) as glob patterns.
-  if (/[[\]{}]/.test(spec.url)) parts.push('-g')
-  parts.push(shellArg(withBaseVar(spec.url.trim())))
-  for (const h of effectiveHeaders({ ...spec, body }, envHeaderNames)) parts.push('-H', shellArg(h))
-  if (body) parts.push('--data-raw', sq(body))
+  if (/[[\]{}]/.test(url)) parts.push('-g')
+  parts.push(shellArg(withBaseVar(url)))
+  // The shell has to expand $TOKEN before the encoding Basic needs, and -u does both.
+  if (spec.auth?.type === 'basic' && (spec.auth.username || spec.auth.password)) parts.push('-u', shellArg(`${spec.auth.username}:${spec.auth.password}`))
+  const auth = spec.auth?.type === 'basic' ? undefined : spec.auth
+  for (const h of effectiveHeaders({ ...spec, auth }, envHeaderNames)) parts.push('-H', shellArg(h))
+  if (data.kind === 'raw') parts.push('--data-raw', sq(data.text))
+  if (data.kind === 'file') parts.push('--data-binary', sq(`@${data.path}`))
+  if (data.kind === 'multipart') {
+    for (const p of data.parts) {
+      if (p.file) parts.push('-F', sq(`${p.name}=${formFilePath(p.value)}`))
+      else parts.push('--form-string', sq(`${p.name}=${p.value}`))
+    }
+  }
   return parts.join(' ')
 }
 
@@ -193,12 +228,12 @@ export function isCurlCommand(text: string): boolean {
 
 /** Options that are dropped without a word: output formatting, timeouts, protocol tweaks. */
 const IGNORED_FLAGS = new Set(['-s', '-S', '-v', '-i', '-f', '-N', '-g', '-#', '--silent', '--show-error', '--verbose', '--include', '--compressed', '--fail', '--fail-with-body', '--no-buffer', '--globoff', '--http1.1', '--http2', '--location-trusted', '--progress-bar'])
-const IGNORED_WITH_ARG = new Set(['-m', '-w', '--max-time', '--connect-timeout', '--retry', '--retry-delay', '--retry-max-time', '--write-out', '--limit-rate', '--expect100-timeout'])
+const IGNORED_WITH_ARG = new Set(['-w', '--connect-timeout', '--retry', '--retry-delay', '--retry-max-time', '--write-out', '--limit-rate', '--expect100-timeout'])
 /** Options that change the request in ways the panel cannot carry over (files, TLS, proxies). */
-const WARN_FLAGS = new Set(['-k', '-O', '-J', '-n', '--insecure', '--remote-name', '--remote-header-name', '--netrc'])
-const WARN_WITH_ARG = new Set(['-o', '-F', '-T', '-x', '-K', '-c', '-D', '-E', '-r', '-U', '--output', '--form', '--upload-file', '--proxy', '--config', '--cookie-jar', '--dump-header', '--cert', '--key', '--cacert', '--resolve', '--range', '--proxy-user', '--form-string'])
+const WARN_FLAGS = new Set(['-O', '-J', '-n', '--remote-name', '--remote-header-name', '--netrc'])
+const WARN_WITH_ARG = new Set(['-o', '-T', '-x', '-K', '-c', '-D', '-E', '-r', '-U', '--output', '--upload-file', '--proxy', '--config', '--cookie-jar', '--dump-header', '--cert', '--key', '--cacert', '--resolve', '--range', '--proxy-user'])
 const DATA_OPTS = new Set(['-d', '--data', '--data-ascii', '--data-binary', '--data-raw', '--data-urlencode', '--json'])
-const ARG_OPTS = new Set(['-X', '-H', '-u', '-A', '-e', '-b', '--request', '--header', '--user', '--user-agent', '--referer', '--cookie', '--url', ...DATA_OPTS, ...IGNORED_WITH_ARG, ...WARN_WITH_ARG])
+const ARG_OPTS = new Set(['-X', '-H', '-u', '-A', '-e', '-b', '-m', '-F', '--request', '--header', '--user', '--user-agent', '--referer', '--cookie', '--url', '--max-time', '--form', '--form-string', ...DATA_OPTS, ...IGNORED_WITH_ARG, ...WARN_WITH_ARG])
 const SHORT_WITH_ARG = new Set([...ARG_OPTS].filter((o) => /^-[a-zA-Z#]$/.test(o)).map((o) => o[1]))
 
 /** Splits `-sSLXPOST` into `-s -S -L -X POST`; long options and plain words pass through. */
@@ -218,11 +253,6 @@ function expandShort(words: string[]): string[] {
     }
   }
   return out
-}
-
-function base64(text: string): string {
-  const bytes = new TextEncoder().encode(text)
-  return btoa(String.fromCharCode(...bytes))
 }
 
 function urlEncodeData(value: string): string {
@@ -254,12 +284,15 @@ export function parseCurlCommand(text: string, baseUrl: string): ParsedCurl | nu
   const headers: string[] = []
   const data: string[] = []
   const warnings: string[] = []
+  const form: FormField[] = []
   let method: string | null = null
   let url = ''
   let head = false
   let get = false
   let follow = false
   let hasData = false
+  let insecure = false
+  let timeoutSec = 0
   const warn = (opt: string): void => {
     if (!warnings.includes(opt)) warnings.push(opt)
   }
@@ -287,6 +320,30 @@ export function parseCurlCommand(text: string, baseUrl: string): ParsedCurl | nu
       case '--head':
         head = true
         break
+      case '-k':
+      case '--insecure':
+        insecure = true
+        break
+      case '-m':
+      case '--max-time':
+        timeoutSec = Math.ceil(Number(arg())) || 0
+        break
+      case '-F':
+      case '--form': {
+        const value = arg()
+        const eq = value.indexOf('=')
+        const text = value.slice(eq + 1)
+        // A pasted command must not be able to choose a local file to send: the path is picked again in the form.
+        if (/^[@<]/.test(text)) warn(`${w} @file`)
+        form.push({ name: eq < 0 ? value : value.slice(0, eq), value: /^[@<]/.test(text) ? '' : text, enabled: true, ...(/^[@<]/.test(text) ? { file: true } : {}) })
+        break
+      }
+      case '--form-string': {
+        const value = arg()
+        const eq = value.indexOf('=')
+        form.push({ name: eq < 0 ? value : value.slice(0, eq), value: value.slice(eq + 1), enabled: true })
+        break
+      }
       case '-G':
       case '--get':
         get = true
@@ -342,14 +399,17 @@ export function parseCurlCommand(text: string, baseUrl: string): ParsedCurl | nu
     url += (url.includes('?') ? '&' : '?') + body
     body = ''
   }
-  const chosen = head ? 'HEAD' : (method ?? (hasData && !get ? 'POST' : 'GET'))
+  const chosen = head ? 'HEAD' : (method ?? ((hasData && !get) || form.length > 0 ? 'POST' : 'GET'))
   return {
     spec: {
       method: (HTTP_METHODS as readonly string[]).includes(chosen) ? (chosen as HttpMethod) : 'GET',
       url: relativeUrl(url, baseUrl),
       headers: headers.join('\n'),
       body,
-      followRedirects: follow
+      followRedirects: follow,
+      ...(form.length > 0 ? { bodyKind: 'multipart' as const, form } : {}),
+      ...(insecure ? { insecure } : {}),
+      ...(timeoutSec > 0 ? { timeoutSec } : {})
     },
     warnings: method && !(HTTP_METHODS as readonly string[]).includes(method) ? [...warnings, `-X ${method}`] : warnings
   }
@@ -417,4 +477,22 @@ export interface HttpResponseInfo {
   redirects: number
   /** curl's own message when the request failed, e.g. "Could not resolve host: api.example". */
   error?: string
+  /** Where the time went on the last hop, in milliseconds. */
+  timing?: ResponseTiming
+  remoteIp?: string
+  /** Bytes of the request body sent. */
+  uploadBytes?: number
+  /** curl's verbose log of every hop, with credentials masked. */
+  timeline?: string
+  /** Image bodies as base64, for the preview. */
+  bodyBase64?: string
+}
+
+export interface ResponseTiming {
+  dns: number
+  connect: number
+  tls: number
+  /** From the request being sent to the first byte of the answer. */
+  wait: number
+  download: number
 }

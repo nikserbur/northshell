@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { HttpRequestSpec, HttpResponseInfo } from '@shared/httpRequest'
+import type { CookieEntry, HttpHistoryItem, HttpWorkspace, SavedRequestInput } from '@shared/httpWorkspace'
 import { IPC } from '@shared/ipc'
 import type {
   AppSettings,
@@ -84,7 +85,20 @@ const api = {
   },
   http: {
     send: (tabId: string, spec: HttpRequestSpec): Promise<HttpResponseInfo> => ipcRenderer.invoke(IPC.httpSend, tabId, spec),
-    cancel: (tabId: string): Promise<void> => ipcRenderer.invoke(IPC.httpCancel, tabId)
+    cancel: (tabId: string): Promise<void> => ipcRenderer.invoke(IPC.httpCancel, tabId),
+    workspace: (): Promise<HttpWorkspace> => ipcRenderer.invoke(IPC.httpWorkspace),
+    saveRequest: (input: SavedRequestInput): Promise<{ workspace: HttpWorkspace; id: string }> => ipcRenderer.invoke(IPC.httpSaveRequest, input),
+    removeRequest: (id: string): Promise<HttpWorkspace> => ipcRenderer.invoke(IPC.httpRemoveRequest, id),
+    setVars: (sessionId: string, vars: Record<string, string>): Promise<HttpWorkspace> => ipcRenderer.invoke(IPC.httpSetVars, sessionId, vars),
+    addHistory: (sessionId: string, item: HttpHistoryItem): Promise<HttpWorkspace> => ipcRenderer.invoke(IPC.httpAddHistory, sessionId, item),
+    clearHistory: (sessionId: string): Promise<HttpWorkspace> => ipcRenderer.invoke(IPC.httpClearHistory, sessionId),
+    importCollection: (sessionId: string): Promise<{ workspace: HttpWorkspace; count: number } | null> => ipcRenderer.invoke(IPC.httpImport, sessionId),
+    exportCollection: (sessionId: string, name: string): Promise<string | null> => ipcRenderer.invoke(IPC.httpExport, sessionId, name),
+    pickFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.httpPickFile),
+    saveResponse: (tabId: string, suggestedName: string): Promise<string | null> => ipcRenderer.invoke(IPC.httpSaveResponse, tabId, suggestedName),
+    cookies: (sessionId: string): Promise<CookieEntry[]> => ipcRenderer.invoke(IPC.httpCookies, sessionId),
+    removeCookies: (sessionId: string, cookie?: { domain: string; path: string; name: string }): Promise<CookieEntry[]> =>
+      ipcRenderer.invoke(IPC.httpRemoveCookies, sessionId, cookie)
   },
   monitor: {
     setLocal: (on: boolean): Promise<void> => ipcRenderer.invoke(IPC.monitorLocal, on),
