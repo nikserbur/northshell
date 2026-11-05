@@ -23,6 +23,16 @@ describe('generateCode', () => {
     expect(generateCode('httpie', spec(), ctx)).toContain(`'Authorization:Bearer '"$TOKEN"`)
   })
 
+  it('reads a token in the URL from the environment too', () => {
+    const inQuery = spec({ url: '/u', auth: { type: 'apikey', name: 'key', value: '$TOKEN', in: 'query' } })
+    const noEnv = { ...ctx, envHeaders: '' }
+    expect(generateCode('fetch', inQuery, noEnv)).toContain('fetch(`https://api.test/v1/u?key=${process.env.TOKEN}`')
+    const py = generateCode('python', inQuery, noEnv)
+    expect(py).toContain('import os')
+    expect(py).toContain(`f"https://api.test/v1/u?key={os.environ['TOKEN']}"`)
+    expect(generateCode('httpie', inQuery, noEnv)).toContain(`'https://api.test/v1/u?key='"$TOKEN"`)
+  })
+
   it('writes valid fetch and python structure', () => {
     const js = generateCode('fetch', spec({ followRedirects: false }), { ...ctx, envHeaders: '' })
     expect(js).toContain(`method: "POST"`)

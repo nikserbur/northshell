@@ -156,10 +156,17 @@ export function reloadCommands(): Promise<boolean> {
   return updateLibrary(api().commands.list())
 }
 
-/** Applies a change to collections, variables or history; errors become a toast. */
+let workspaceChanges = 0
+
+/**
+ * Applies a change to collections, variables or history; errors become a toast. Main handles changes in
+ * order, so only the reply to the latest one is applied: an older one would undo what was typed since.
+ */
 export async function updateHttpWorkspace(change: Promise<HttpWorkspace>): Promise<boolean> {
+  const mine = ++workspaceChanges
   try {
-    useApp.getState().setHttpWorkspace(await change)
+    const workspace = await change
+    if (mine === workspaceChanges) useApp.getState().setHttpWorkspace(workspace)
     return true
   } catch (err) {
     useApp.getState().toast({ kind: 'error', text: errorMessage(err) })
@@ -221,12 +228,12 @@ export async function saveHttpRequest(tabId: string): Promise<void> {
     store.openDialog({ kind: 'http-save', tabId })
     return
   }
-  await updateHttpWorkspace(
+  const ok = await updateHttpWorkspace(
     api()
       .http.saveRequest({ id: saved.id, name: saved.name, folder: saved.folder, sessionId: saved.sessionId, spec: panel.spec })
       .then((r) => r.workspace)
   )
-  store.toast({ kind: 'success', text: makeT(store.settings.language)('savedFile', { name: saved.name }) })
+  if (ok) store.toast({ kind: 'success', text: makeT(store.settings.language)('savedFile', { name: saved.name }) })
 }
 
 const stoppedRuns = new Set<string>()

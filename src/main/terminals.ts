@@ -113,7 +113,6 @@ export class TerminalService {
     this.backends.get(tabId)?.dispose()
     this.backends.delete(tabId)
     this.clients.delete(tabId)
-    this.detailTabs.delete(tabId)
     this.batcher.discard(tabId)
   }
 

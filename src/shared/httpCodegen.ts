@@ -68,7 +68,7 @@ function fetchCode(spec: HttpRequestSpec, ctx: CodeContext): string {
   if (data.kind === 'multipart') opts.push('  body: form')
   if (data.kind === 'file') opts.push(`  body: await openAsBlob(${JSON.stringify(data.path)})`)
   if (!spec.followRedirects) opts.push(`  redirect: 'manual'`)
-  lines.push(`const response = await fetch(${JSON.stringify(fullUrl(spec, ctx))}, {\n${opts.join(',\n')}\n})`, 'console.log(response.status, await response.text())')
+  lines.push(`const response = await fetch(${jsString(fullUrl(spec, ctx))}, {\n${opts.join(',\n')}\n})`, 'console.log(response.status, await response.text())')
   if (data.kind === 'file' || (data.kind === 'multipart' && data.parts.some((p) => p.file))) lines.unshift(`import { openAsBlob } from 'node:fs'`, '')
   return lines.join('\n')
 }
@@ -76,9 +76,10 @@ function fetchCode(spec: HttpRequestSpec, ctx: CodeContext): string {
 function pythonCode(spec: HttpRequestSpec, ctx: CodeContext): string {
   const headers = headersOf(spec, ctx)
   const data = requestData(spec)
-  const usesToken = headers.some(([, v]) => new RegExp(TOKEN_RE.source).test(v))
+  const url = fullUrl(spec, ctx)
+  const usesToken = [url, ...headers.map(([, v]) => v)].some((v) => new RegExp(TOKEN_RE.source).test(v))
   const lines = [usesToken ? 'import os\n' : '', 'import requests', '']
-  const args = [JSON.stringify(spec.method), JSON.stringify(fullUrl(spec, ctx))]
+  const args = [JSON.stringify(spec.method), pyString(url)]
   if (headers.length > 0) {
     lines.push(`headers = {\n${headers.map(([n, v]) => `    ${JSON.stringify(n)}: ${pyString(v)}`).join(',\n')}\n}`)
     args.push('headers=headers')
@@ -117,7 +118,7 @@ function httpieCode(spec: HttpRequestSpec, ctx: CodeContext): string {
   if (spec.timeoutSec) parts.push(`--timeout=${spec.timeoutSec}`)
   if (data.kind === 'multipart') parts.push('--multipart')
   if (data.kind === 'raw') parts.push(`--raw ${sq(data.text)}`)
-  parts.push(spec.method, sq(fullUrl(spec, ctx)))
+  parts.push(spec.method, shellWord(fullUrl(spec, ctx)))
   for (const [name, value] of headersOf(spec, ctx)) parts.push(shellWord(`${name}:${value}`))
   if (data.kind === 'file') parts.push(`@${sq(data.path)}`)
   if (data.kind === 'multipart') for (const p of data.parts) parts.push(sq(p.file ? `${p.name}@${p.value}` : `${p.name}=${p.value}`))

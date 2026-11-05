@@ -136,11 +136,19 @@ export function authHeaderLine(auth: RequestAuth | undefined): string | null {
   }
 }
 
+/** Percent-encodes everything except a $TOKEN reference, which the shell or the runner fills in later. */
+function encodeKeepingToken(text: string): string {
+  return text
+    .split(/(\$\{TOKEN\}|\$TOKEN\b)/)
+    .map((part, i) => (i % 2 === 1 ? part : encodeURIComponent(part)))
+    .join('')
+}
+
 /** Adds an API key that belongs in the query string. */
 export function withAuthQuery(url: string, auth: RequestAuth | undefined): string {
   if (auth?.type !== 'apikey' || auth.in !== 'query' || !auth.name) return url
   const { base, params, hash } = parseQuery(url)
-  return withQuery(base, [...params, { name: encodeURIComponent(auth.name), value: encodeURIComponent(auth.value) }], hash)
+  return withQuery(base, [...params, { name: encodeURIComponent(auth.name), value: encodeKeepingToken(auth.value) }], hash)
 }
 
 /** Splits a URL for the parameter table. Values stay as typed, so `{{id}}` and existing escapes survive. */
