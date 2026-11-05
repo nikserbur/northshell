@@ -180,7 +180,8 @@ export class TerminalService {
       env: http.env,
       baseUrl: http.endpoint,
       token,
-      defaultHeaderNames: parseHeaders(session.headers).headers.map((h) => h.name)
+      defaultHeaderNames: parseHeaders(session.headers).headers.map((h) => h.name),
+      sessionId: session.id
     }
     const cleanup = (): void => {
       // A reconnect may already have registered the next shell of this tab.

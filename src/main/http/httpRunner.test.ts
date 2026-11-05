@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { emptyRequest, type HttpRequestSpec } from '@shared/httpRequest'
-import { HttpRequests, parseHeaderDump, runHttpRequest, type HttpEnvironment } from './httpRunner'
+import { HttpRequests, parseHeaderDump, redactTimeline, runHttpRequest, type HttpEnvironment } from './httpRunner'
 
 let server: Server
 let base = ''
@@ -37,6 +37,12 @@ beforeAll(async () => {
       } else if (req.url === '/gzip') {
         res.writeHead(200, { 'Content-Type': 'text/plain', 'Content-Encoding': 'gzip' })
         res.end(gzipSync('compressed hello'))
+      } else if (req.url === '/image') {
+        res.writeHead(200, { 'Content-Type': 'image/png' })
+        res.end(Buffer.from([137, 80, 78, 71, 0, 1]))
+      } else if (req.url === '/login') {
+        res.writeHead(200, { 'Set-Cookie': 'sid=abc; Path=/; HttpOnly' })
+        res.end('ok')
       } else if (req.url === '/slow') {
         setTimeout(() => res.end('late'), 5000)
       } else {
@@ -186,7 +192,8 @@ describe('runHttpRequest like the tab shell', () => {
       expect(res.status).toBe(0)
       const args = readFileSync(argsFile, 'utf8')
       expect(args).not.toContain('tok-123')
-      expect(args).toMatch(/^-H\n@.*request-headers$/m)
+      expect(args).toMatch(/^-H$/m)
+      expect(args).toMatch(/^@.*request-headers$/m)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -218,3 +225,141 @@ describe('parseHeaderDump', () => {
     expect(parseHeaderDump('')).toBeNull()
   })
 })
+
+describe('runHttpRequest with the structured form', () => {
+  const origin = (): string => `http://127.0.0.1:${new URL(base).port}`
+
+  it('sends auth settings, $TOKEN included, and never the secret on the command line', async () => {
+    const bearer = echo((await runHttpRequest(spec({ url: '/echo', auth: { type: 'bearer', token: '$TOKEN' } }), env())).body)
+    expect(bearer.headers.authorization).toBe('Bearer tok-123')
+    const basic = echo((await runHttpRequest(spec({ url: '/echo', auth: { type: 'basic', username: 'ann', password: '$TOKEN' } }), env())).body)
+    expect(basic.headers.authorization).toBe(`Basic ${Buffer.from('ann:tok-123').toString('base64')}`)
+    const query = echo((await runHttpRequest(spec({ url: '/echo', auth: { type: 'apikey', name: 'key', value: '$TOKEN', in: 'query' } }), env())).body)
+    expect(query.url).toBe('/api/echo?key=tok-123')
+    const header = echo((await runHttpRequest(spec({ url: '/echo', auth: { type: 'apikey', name: 'X-Key', value: 'v', in: 'header' } }), env())).body)
+    expect(header.headers['x-key']).toBe('v')
+  })
+
+  it('lets a request replace a default header of the environment instead of sending both', async () => {
+    const got = echo((await runHttpRequest(spec({ url: '/echo', headers: 'X-Env: mine' }), env())).body)
+    expect(got.headers['x-env']).toBe('mine')
+  })
+
+  it('drops an API key header when a redirect leaves the host', async () => {
+    const res = await runHttpRequest(spec({ url: `${origin()}/redirect-away`, followRedirects: true, auth: { type: 'apikey', name: 'X-Key', value: 'v', in: 'header' } }), env())
+    expect(echo(res.body).headers['x-key']).toBeUndefined()
+  })
+
+  it('sends urlencoded forms and GraphQL as their right content types', async () => {
+    const form = echo((await runHttpRequest(spec({ method: 'POST', url: '/echo', bodyKind: 'form', form: [{ name: 'a b', value: 'c&d', enabled: true }] }), env())).body)
+    expect(form.body).toBe('a%20b=c%26d')
+    expect(form.headers['content-type']).toBe('application/x-www-form-urlencoded')
+    const gql = echo((await runHttpRequest(spec({ method: 'POST', url: '/echo', bodyKind: 'graphql', body: '{ me }', graphqlVariables: '{"a":1}' }), env())).body)
+    expect(JSON.parse(gql.body)).toEqual({ query: '{ me }', variables: { a: 1 } })
+    await expect(runHttpRequest(spec({ method: 'POST', url: '/echo', bodyKind: 'graphql', body: 'q', graphqlVariables: '{' }), env())).rejects.toThrow('GraphQL')
+  })
+
+  it('sends multipart text and files, and a value starting with @ stays text', async () => {
+    const file = join(curlHome, 'up load.txt')
+    writeFileSync(file, 'file-content')
+    const res = await runHttpRequest(
+      spec({
+        method: 'POST',
+        url: '/echo',
+        bodyKind: 'multipart',
+        form: [
+          { name: 'note', value: `@${file}`, enabled: true },
+          { name: 'doc', value: file, enabled: true, file: true }
+        ]
+      }),
+      env()
+    )
+    const got = echo(res.body)
+    expect(res.error).toBeUndefined()
+    expect(got.headers['content-type']).toMatch(/^multipart\/form-data; boundary=/)
+    expect(got.body).toContain(`@${file}`)
+    expect(got.body).toContain('file-content')
+    await expect(runHttpRequest(spec({ method: 'POST', url: '/echo', bodyKind: 'multipart', form: [{ name: 'f', value: 'rel/path', enabled: true, file: true }] }), env())).rejects.toThrow('again')
+  })
+
+  it('sends a file as the whole body', async () => {
+    const file = join(curlHome, 'raw.bin')
+    writeFileSync(file, 'raw-bytes')
+    const got = echo((await runHttpRequest(spec({ method: 'PUT', url: '/echo', bodyKind: 'file', filePath: file }), env())).body)
+    expect(got.body).toBe('raw-bytes')
+    expect(got.headers['content-type']).toBe('application/octet-stream')
+  })
+
+  it('reports timing, the address and a timeline without credentials', async () => {
+    const res = await runHttpRequest(spec({ url: '/echo', headers: 'Authorization: Bearer $TOKEN\nX-Plain: visible' }), env())
+    expect(res.timing).toMatchObject({ tls: 0 })
+    expect(res.remoteIp).toBe('127.0.0.1')
+    expect(res.timeline).toContain('> X-Plain: visible')
+    expect(res.timeline).toContain('> Authorization: ••••')
+    expect(res.timeline).toContain('< HTTP/1.1 201')
+    expect(res.timeline).not.toContain('tok-123')
+  })
+
+  it('still reports curl errors in verbose mode', async () => {
+    const res = await runHttpRequest(spec({ url: 'http://127.0.0.1:1/' }), env())
+    expect(res.status).toBe(0)
+    expect(res.error).toMatch(/connect|refused/i)
+    expect(res.error).not.toMatch(/^\*/)
+  })
+
+  it('returns images for the preview, and honours the timeout of the request', async () => {
+    const img = await runHttpRequest(spec({ url: `${origin()}/image` }), env())
+    expect(img.bodyBase64).toBe(Buffer.from([137, 80, 78, 71, 0, 1]).toString('base64'))
+    const slow = await runHttpRequest(spec({ url: `${origin()}/slow`, timeoutSec: 1 }), env())
+    expect(slow.error).toMatch(/timed out|timeout/i)
+  })
+
+  it('keeps cookies in the jar between requests of the same environment', async () => {
+    const jar = join(curlHome, 'jar.txt')
+    await runHttpRequest(spec({ url: `${origin()}/login` }), env(), { cookieJar: jar })
+    const got = echo((await runHttpRequest(spec({ url: `${origin()}/echo` }), env(), { cookieJar: jar })).body)
+    expect(got.headers.cookie).toBe('sid=abc')
+    expect(readFileSync(jar, 'utf8')).toContain('sid')
+  })
+})
+
+describe('redactTimeline', () => {
+  it('keeps the log lines, masks credentials and the token anywhere', () => {
+    const log = ['* Connected', '> GET /?k=sekret HTTP/1.1', '> X-Key: value', '> Cookie: a=1', '> Accept: */*', '{ [5 bytes data]', '< HTTP/1.1 200 OK', 'curl: (0) noise'].join('\r\n')
+    expect(redactTimeline(log, ['X-Key'], 'sekret').split('\n')).toEqual([
+      '* Connected',
+      '> GET /?k=•••• HTTP/1.1',
+      '> X-Key: ••••',
+      '> Cookie: ••••',
+      '> Accept: */*',
+      '< HTTP/1.1 200 OK'
+    ])
+  })
+})
+
+describe('HttpRequests: saving the response', () => {
+  it('copies the whole last response, and forgets it with the tab', async () => {
+    const requests = new HttpRequests(() => env())
+    const target = join(curlHome, 'saved.bin')
+    await expect(requests.saveResponse('tab', target)).rejects.toThrow('no response')
+    await requests.send('tab', spec({ url: `http://127.0.0.1:${new URL(base).port}/binary` }))
+    await requests.saveResponse('tab', target)
+    expect([...readFileSync(target)]).toEqual([0, 1, 2, 3, 0, 255])
+    requests.dispose('tab')
+    await expect(requests.saveResponse('tab', target)).rejects.toThrow('no response')
+  })
+
+  it('uses the cookie jar of the environment, unless the request turns it off', async () => {
+    const jarPath = join(curlHome, 'env-jar.txt')
+    const origin = `http://127.0.0.1:${new URL(base).port}`
+    const requests = new HttpRequests(
+      () => env({ sessionId: 's1' }),
+      () => jarPath
+    )
+    await requests.send('t', spec({ url: `${origin}/login` }))
+    expect(echo((await requests.send('t', spec({ url: `${origin}/echo` }))).body).headers.cookie).toBe('sid=abc')
+    expect(echo((await requests.send('t', spec({ url: `${origin}/echo`, saveCookies: false }))).body).headers.cookie).toBeUndefined()
+    requests.cancelAll()
+  })
+})
+

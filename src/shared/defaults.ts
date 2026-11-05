@@ -29,7 +29,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   sftpPanelOpen: true,
   sidebarOpen: true,
   commandsPanelOpen: false,
-  httpPanelOpen: true
+  httpPanelOpen: true,
+  httpPanelExpanded: true
 }
 
 export const SESSION_COLORS = ['#5eead4', '#a78bfa', '#f472b6', '#fbbf24', '#60a5fa', '#f87171', '#4ade80', '#94a3b8']

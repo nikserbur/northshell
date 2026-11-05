@@ -1,3 +1,6 @@
+import { BODY_KINDS } from '@shared/httpBody'
+import { HTTP_METHODS, type HttpRequestSpec } from '@shared/httpRequest'
+import { TEST_OPS, TEST_TARGETS } from '@shared/httpTests'
 import { z } from 'zod'
 import { normalizeBaseUrl, parseHeaders } from '@shared/httpEnv'
 import { UNSAFE_CONTROL_RE } from '@shared/snippets'
@@ -89,7 +92,70 @@ export const settingsShape = z.object({
     sftpPanelOpen: z.boolean(),
     sidebarOpen: z.boolean(),
     commandsPanelOpen: z.boolean(),
-    httpPanelOpen: z.boolean()
+    httpPanelOpen: z.boolean(),
+    httpPanelExpanded: z.boolean()
 })
 
 export const settingsPatchSchema = settingsShape.partial().strict()
+
+const httpText = (max: number): z.ZodString => z.string().max(max)
+const shortText = httpText(4096)
+
+export const httpRequestSpecSchema = z.object({
+  method: z.enum(HTTP_METHODS),
+  url: httpText(8192),
+  headers: httpText(16384),
+  body: httpText(1024 * 1024),
+  followRedirects: z.boolean(),
+  bodyKind: z.enum(BODY_KINDS).optional(),
+  form: z.array(z.object({ name: shortText, value: httpText(64 * 1024), enabled: z.boolean(), file: z.boolean().optional() })).max(200).optional(),
+  filePath: shortText.optional(),
+  graphqlVariables: httpText(256 * 1024).optional(),
+  auth: z
+    .discriminatedUnion('type', [
+      z.object({ type: z.literal('none') }),
+      z.object({ type: z.literal('bearer'), token: shortText }),
+      z.object({ type: z.literal('basic'), username: shortText, password: shortText }),
+      z.object({ type: z.literal('apikey'), name: shortText, value: shortText, in: z.enum(['header', 'query']) })
+    ])
+    .optional(),
+  disabledParams: z.array(z.object({ name: shortText, value: shortText })).max(200).optional(),
+  timeoutSec: z.number().int().min(1).max(3600).optional(),
+  insecure: z.boolean().optional(),
+  saveCookies: z.boolean().optional(),
+  tests: z.array(z.object({ target: z.enum(TEST_TARGETS), path: shortText, op: z.enum(TEST_OPS), value: shortText, enabled: z.boolean() })).max(100).optional(),
+  extract: z.array(z.object({ source: z.enum(['json', 'header']), path: shortText, variable: httpText(64), enabled: z.boolean() })).max(100).optional()
+}) satisfies z.ZodType<HttpRequestSpec>
+
+const savedName = z.string().trim().min(1).max(200)
+const savedFolder = z.string().trim().max(400)
+
+export const savedRequestInputSchema = z.object({
+  id: z.string().min(1).max(64).optional(),
+  name: savedName,
+  folder: savedFolder,
+  sessionId: z.string().min(1).max(64).optional(),
+  spec: httpRequestSpecSchema
+})
+
+export const httpVarsSchema = z.record(z.string().min(1).max(64), z.string().max(64 * 1024))
+
+export const httpHistoryItemSchema = z.object({
+  id: z.string().min(1).max(64),
+  spec: httpRequestSpecSchema,
+  status: z.number().int().min(0).max(999),
+  timeMs: z.number().min(0),
+  at: z.number().min(0)
+})
+
+export const httpWorkspaceSchema = z.object({
+  requests: z.array(savedRequestInputSchema.extend({ id: z.string().min(1).max(64), updatedAt: z.number() })),
+  vars: z.record(z.string(), httpVarsSchema),
+  history: z.record(z.string(), z.array(httpHistoryItemSchema))
+})
+
+export const importedCollectionSchema = z.object({
+  name: z.string().max(400),
+  requests: z.array(z.object({ name: savedName, folder: savedFolder, spec: httpRequestSpecSchema })).max(5000),
+  variables: httpVarsSchema
+})

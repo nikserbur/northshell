@@ -42,6 +42,18 @@ export const IPC = {
 
   httpSend: 'http:send',
   httpCancel: 'http:cancel',
+  httpWorkspace: 'http:workspace',
+  httpSaveRequest: 'http:save-request',
+  httpRemoveRequest: 'http:remove-request',
+  httpSetVars: 'http:set-vars',
+  httpAddHistory: 'http:add-history',
+  httpClearHistory: 'http:clear-history',
+  httpImport: 'http:import',
+  httpExport: 'http:export',
+  httpPickFile: 'http:pick-file',
+  httpSaveResponse: 'http:save-response',
+  httpCookies: 'http:cookies',
+  httpRemoveCookies: 'http:remove-cookies',
 
   monitorSnapshot: 'monitor:snapshot',
   monitorLocal: 'monitor:local',

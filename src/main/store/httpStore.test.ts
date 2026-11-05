@@ -1,0 +1,66 @@
+import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterAll, describe, expect, it, vi } from 'vitest'
+import type { HttpRequestSpec } from '@shared/httpRequest'
+import { HttpStore } from './httpStore'
+
+const spec: HttpRequestSpec = { method: 'GET', url: '/x', headers: '', body: '', followRedirects: false }
+
+describe('HttpStore', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'http-store-'))
+  afterAll(() => rmSync(dir, { recursive: true, force: true }))
+  const store = (name: string): HttpStore => new HttpStore(join(dir, name))
+
+  it('saves, updates and removes requests', () => {
+    const s = store('a.json')
+    const { id, workspace } = s.saveRequest({ name: ' List ', folder: ' Orders ', spec })
+    expect(workspace.requests[0]).toMatchObject({ id, name: 'List', folder: 'Orders' })
+    expect(s.saveRequest({ id, name: 'Renamed', folder: '', spec }).workspace.requests).toHaveLength(1)
+    expect(s.workspace().requests[0].name).toBe('Renamed')
+    expect(s.removeRequest(id).requests).toEqual([])
+  })
+
+  it('writes owner-only: requests can hold tokens', () => {
+    const s = store('perm.json')
+    s.saveRequest({ name: 'x', folder: '', spec })
+    expect(statSync(join(dir, 'perm.json')).mode & 0o777).toBe(0o600)
+  })
+
+  it('keeps recent history per environment and shrinks big entries', () => {
+    const s = store('b.json')
+    for (let i = 0; i < 105; i++) s.addHistory('env', { id: String(i), spec, status: 200, timeMs: 1, at: i })
+    const history = s.workspace().history.env
+    expect(history).toHaveLength(100)
+    expect(history[0].id).toBe('104')
+    const big = s.addHistory('env', { id: 'big', spec: { ...spec, body: 'x'.repeat(70000) }, status: 200, timeMs: 1, at: 1 })
+    expect(big.history.env[0].spec.body).toBe('')
+    expect(s.clearHistory('env').history.env).toEqual([])
+  })
+
+  it('imports a collection without overwriting variables already set', () => {
+    const s = store('c.json')
+    s.setVars('env', { host: 'mine' })
+    const w = s.addImported('env', { name: 'C', requests: [{ name: 'R', folder: 'C', spec }], variables: { host: 'theirs', other: '1' } })
+    expect(w.vars.env).toEqual({ host: 'mine', other: '1' })
+    expect(w.requests[0]).toMatchObject({ name: 'R', sessionId: 'env' })
+  })
+
+  it('forgets a deleted environment but keeps shared requests', () => {
+    const s = store('d.json')
+    s.saveRequest({ name: 'shared', folder: '', spec })
+    s.saveRequest({ name: 'own', folder: '', sessionId: 'env', spec })
+    s.setVars('env', { a: '1' })
+    const w = s.removeSession('env')
+    expect(w.requests.map((r) => r.name)).toEqual(['shared'])
+    expect(w.vars).toEqual({})
+  })
+
+  it('starts empty on a file with the wrong shape, without crashing', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    writeFileSync(join(dir, 'e.json'), '{"requests":"nope"}')
+    expect(store('e.json').workspace().requests).toEqual([])
+    expect(error).toHaveBeenCalled()
+    error.mockRestore()
+  })
+})

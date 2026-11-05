@@ -112,7 +112,10 @@ describe('parseCurlCommand', () => {
   it('warns about options it cannot carry over', () => {
     const res = parseCurlCommand('curl -k -F file=@a.txt -o out.json --max-time 5 https://x.test/', BASE)
     expect(res?.spec.url).toBe('https://x.test/')
-    expect(res?.warnings).toEqual(['-k', '-F', '-o'])
+    expect(res?.warnings).toEqual(['-F @file', '-o'])
+    expect(res?.spec).toMatchObject({ insecure: true, timeoutSec: 5, bodyKind: 'multipart', method: 'POST' })
+    // The path of a pasted command is not trusted: the file has to be picked in the form.
+    expect(res?.spec.form).toEqual([{ name: 'file', value: '', enabled: true, file: true }])
   })
 
   it('rejects text that is not a curl command or has no URL', () => {
@@ -196,3 +199,60 @@ describe('body helpers', () => {
     expect(prettyBody('{broken')).toEqual({ text: '{broken', json: false })
   })
 })
+
+describe('buildCurlCommand with the structured form', () => {
+  const base = { method: 'POST' as const, url: '/x', headers: '', body: '', followRedirects: false }
+
+  it('sends form fields urlencoded with their content type', () => {
+    const cmd = buildCurlCommand({ ...base, bodyKind: 'form', form: [{ name: 'a b', value: 'c&d', enabled: true }, { name: 'off', value: '1', enabled: false }] })
+    expect(cmd).toContain("--data-raw 'a%20b=c%26d'")
+    expect(cmd).toContain("-H 'Content-Type: application/x-www-form-urlencoded'")
+    expect(cmd).not.toContain('off')
+  })
+
+  it('never lets a multipart text value read a file, and quotes file paths', () => {
+    const cmd = buildCurlCommand({ ...base, bodyKind: 'multipart', form: [{ name: 'note', value: '@/etc/passwd', enabled: true }, { name: 'up', value: '/tmp/a;b.png', enabled: true, file: true }] })
+    expect(cmd).toContain("--form-string 'note=@/etc/passwd'")
+    expect(cmd).toContain(`-F 'up=@"/tmp/a;b.png"'`)
+    expect(cmd).not.toContain('Content-Type')
+  })
+
+  it('sends a file as the whole body', () => {
+    expect(buildCurlCommand({ ...base, bodyKind: 'file', filePath: '/tmp/x.bin' })).toContain("--data-binary '@/tmp/x.bin'")
+  })
+
+  it('wraps a GraphQL query and its variables as JSON', () => {
+    const cmd = buildCurlCommand({ ...base, bodyKind: 'graphql', body: '{ me { id } }', graphqlVariables: '{"a":1}' })
+    expect(cmd).toContain(`--data-raw '{"query":"{ me { id } }","variables":{"a":1}}'`)
+    expect(cmd).toContain("-H 'Content-Type: application/json'")
+    expect(() => buildCurlCommand({ ...base, bodyKind: 'graphql', body: 'q', graphqlVariables: '{nope' })).toThrow('variables')
+  })
+
+  it('turns auth settings into a header, -u or a query parameter', () => {
+    expect(buildCurlCommand({ ...base, auth: { type: 'bearer', token: '$TOKEN' } })).toContain(`-H 'Authorization: Bearer '"$TOKEN"`)
+    expect(buildCurlCommand({ ...base, auth: { type: 'basic', username: 'ann', password: '$TOKEN' } })).toContain(`-u 'ann:'"$TOKEN"`)
+    expect(buildCurlCommand({ ...base, auth: { type: 'apikey', name: 'X-Key', value: 'k', in: 'header' } })).toContain(`-H 'X-Key: k'`)
+    expect(buildCurlCommand({ ...base, url: '/x?a=1', auth: { type: 'apikey', name: 'key', value: 'k k', in: 'query' } })).toContain("/x?a=1&key=k%20k'")
+  })
+
+  it('keeps a header typed by hand over the auth setting', () => {
+    const cmd = buildCurlCommand({ ...base, headers: 'Authorization: Custom 1', auth: { type: 'bearer', token: 't' } })
+    expect(cmd).toContain('Custom 1')
+    expect(cmd).not.toContain('Bearer')
+  })
+
+  it('leaves switched-off headers out and passes -k and the timeout on', () => {
+    const cmd = buildCurlCommand({ ...base, headers: '# X-Off: 1\nX-On: 2', insecure: true, timeoutSec: 9 })
+    expect(cmd).not.toContain('X-Off')
+    expect(cmd).toContain("-H 'X-On: 2'")
+    expect(cmd).toContain('-k --max-time 9')
+  })
+
+  it('lets a chosen body kind outrank the environment default Content-Type, but not a guessed one', () => {
+    const picked = buildCurlCommand({ ...base, bodyKind: 'json', body: '{}' }, ['Content-Type'])
+    expect(picked).toContain("-H 'Content-Type: application/json'")
+    const guessed = buildCurlCommand({ ...base, body: '{}' }, ['Content-Type'])
+    expect(guessed).not.toContain('Content-Type')
+  })
+})
+
