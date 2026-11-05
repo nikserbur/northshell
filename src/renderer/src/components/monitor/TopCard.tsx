@@ -62,14 +62,24 @@ export function TopCard({ monitorKey, snapshot }: Props) {
           <Maximize2 size={12} />
         </button>
       </div>
+      <div className="segmented sm mon-top-metrics">
+        {metrics.map((m) => (
+          <button key={m.id} className={metric === m.id ? 'on' : ''} disabled={m.off} onClick={() => setMetric(m.id)}>
+            {m.label}
+          </button>
+        ))}
+      </div>
       <div className="mon-top-controls">
-        <div className="segmented sm">
-          {metrics.map((m) => (
-            <button key={m.id} className={metric === m.id ? 'on' : ''} disabled={m.off} onClick={() => setMetric(m.id)}>
-              {m.label}
+        {!selected && (
+          <div className="segmented sm">
+            <button className={mode === 'users' ? 'on' : ''} onClick={() => setMode('users')} title={t('monTabUsers')}>
+              <Users size={12} />
             </button>
-          ))}
-        </div>
+            <button className={mode === 'processes' ? 'on' : ''} onClick={() => setMode('processes')} title={t('monTabProcesses')}>
+              <ListOrdered size={12} />
+            </button>
+          </div>
+        )}
         <select
           className="input mon-user-select"
           value={selected ?? ''}
@@ -85,16 +95,6 @@ export function TopCard({ monitorKey, snapshot }: Props) {
           ))}
         </select>
       </div>
-      {!selected && (
-        <div className="segmented sm mon-top-mode">
-          <button className={mode === 'users' ? 'on' : ''} onClick={() => setMode('users')}>
-            {t('monTabUsers')}
-          </button>
-          <button className={mode === 'processes' ? 'on' : ''} onClick={() => setMode('processes')}>
-            {t('monTabProcesses')}
-          </button>
-        </div>
-      )}
       <div className="mon-top-rows">
         {!detail && <span className="muted">{t('monCollecting')}</span>}
         {detail && rows.every((r) => r.value <= 0) && <span className="muted">{t('monNoActivity')}</span>}

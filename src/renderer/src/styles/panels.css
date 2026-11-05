@@ -299,7 +299,7 @@
   border-top: 1px solid var(--line);
   background: var(--surface-1);
   display: grid;
-  grid-template-columns: minmax(200px, 1.1fr) repeat(4, minmax(150px, 1fr)) minmax(190px, 1.1fr) minmax(290px, 1.5fr);
+  grid-template-columns: minmax(170px, 1fr) repeat(4, minmax(128px, 1fr)) minmax(160px, 1.05fr) minmax(250px, 1.5fr);
   gap: 1px;
   overflow-x: auto;
   background-color: var(--line);
@@ -314,7 +314,7 @@
 }
 
 .monitor.has-gpu {
-  grid-template-columns: minmax(180px, 1fr) repeat(5, minmax(130px, 0.9fr)) minmax(170px, 1fr) minmax(280px, 1.5fr);
+  grid-template-columns: minmax(150px, 1fr) repeat(5, minmax(116px, 0.9fr)) minmax(150px, 1fr) minmax(250px, 1.5fr);
 }
 
 /* Eight cards are narrower: let "/ total" drop under the big number instead of being cut. */
@@ -355,6 +355,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
+  white-space: nowrap;
   font-size: 10.5px;
   font-weight: 650;
   letter-spacing: 0.08em;

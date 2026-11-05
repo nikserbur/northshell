@@ -10,6 +10,13 @@ const MAX_ROWS = 500
 
 const rate = (value: number): string => (value > 0 ? formatRate(value) : '—')
 
+/** The arguments after the program name; an app bundle's path repeats the name, so skip past it first. */
+function argsOf(p: ProcessRow): string {
+  const bundle = p.command.indexOf('.app/Contents/MacOS/')
+  const at = p.command.indexOf(p.name, Math.max(0, bundle))
+  return at < 0 ? p.command : p.command.slice(at + p.name.length)
+}
+
 interface Props {
   detail: MonitorDetail
   user: string | null
@@ -62,7 +69,7 @@ export function ProcessesView({ detail, user, query, tree, cores, sort, onSort }
       cell: (p) => (
         <span className="cell-command" title={p.command}>
           {prefixes.get(p.pid) && <span className="tree-guide">{prefixes.get(p.pid)}</span>}
-          <b>{p.name}</b> <span className="dim">{p.command.slice(p.command.indexOf(p.name) + p.name.length)}</span>
+          <b>{p.name}</b> <span className="dim">{argsOf(p)}</span>
         </span>
       )
     }
