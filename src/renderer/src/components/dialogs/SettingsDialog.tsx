@@ -245,10 +245,10 @@ export function SettingsDialog() {
         <Switch on={settings.copyOnSelect} onChange={(v) => update({ copyOnSelect: v })} label={t('copyOnSelect')} />
         <Switch on={settings.rightClickPaste} onChange={(v) => update({ rightClickPaste: v })} label={t('rightClickPaste')} />
         <Switch
-          on={settings.ctrlASelectsCommand}
-          onChange={(v) => update({ ctrlASelectsCommand: v })}
-          label={t('ctrlASelectsCommand')}
-          hint={t('ctrlASelectsCommandHint')}
+          on={settings.selectAllPicksCommand}
+          onChange={(v) => update({ selectAllPicksCommand: v })}
+          label={t('selectAllPicksCommand')}
+          hint={t('selectAllPicksCommandHint')}
         />
         <Switch on={settings.terminalBanner} onChange={(v) => update({ terminalBanner: v })} label={t('terminalBanner')} hint={t('terminalBannerHint')} />
         <Switch on={settings.outputHighlight} onChange={(v) => update({ outputHighlight: v })} label={t('outputHighlight')} hint={t('outputHighlightHint')} />

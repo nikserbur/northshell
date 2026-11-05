@@ -85,7 +85,7 @@ export const settingsShape = z.object({
     showHiddenFiles: z.boolean(),
     confirmDelete: z.boolean(),
     sftpFollowTerminal: z.boolean(),
-    ctrlASelectsCommand: z.boolean(),
+    selectAllPicksCommand: z.boolean(),
     sftpPanelOpen: z.boolean(),
     sidebarOpen: z.boolean(),
     commandsPanelOpen: z.boolean(),

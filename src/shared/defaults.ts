@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showHiddenFiles: false,
   confirmDelete: true,
   sftpFollowTerminal: true,
-  ctrlASelectsCommand: true,
+  selectAllPicksCommand: true,
   sftpPanelOpen: true,
   sidebarOpen: true,
   commandsPanelOpen: false,
