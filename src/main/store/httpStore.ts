@@ -67,6 +67,15 @@ export class HttpStore {
     })
   }
 
+  /** A duplicated environment starts with its own copy of the requests and variables. */
+  copySession(fromId: string, toId: string): HttpWorkspace {
+    const now = Date.now()
+    return this.update((w) => {
+      const copies = w.requests.filter((r) => r.sessionId === fromId).map((r) => ({ ...r, id: randomUUID(), sessionId: toId, updatedAt: now }))
+      return { ...w, requests: [...w.requests, ...copies], vars: { ...w.vars, [toId]: { ...w.vars[fromId] } } }
+    })
+  }
+
   /** The environment was deleted; its shared requests stay. */
   removeSession(sessionId: string): HttpWorkspace {
     return this.update((w) => {

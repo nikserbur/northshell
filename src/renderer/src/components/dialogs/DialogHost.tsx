@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { useT } from '../../lib/useT'
 import { useApp, type Dialog } from '../../store/appStore'
 import { Modal } from '../Modal'
+import { CodeDialog } from '../http/CodeDialog'
 import { CurlImportDialog } from '../http/CurlImportDialog'
+import { SaveRequestDialog } from '../http/SaveRequestDialog'
 import { CommandEditor } from './CommandEditor'
 import { CommandVarsDialog } from './CommandVarsDialog'
 import { SessionEditor } from './SessionEditor'
@@ -99,6 +101,10 @@ export function DialogHost() {
       return (
         <CommandEditor key={dialog.snippet?.id ?? 'new'} snippet={dialog.snippet} sessionId={dialog.sessionId} draft={dialog.draft} />
       )
+    case 'http-save':
+      return <SaveRequestDialog tabId={dialog.tabId} />
+    case 'http-code':
+      return <CodeDialog tabId={dialog.tabId} />
     case 'http-import':
       return <CurlImportDialog tabId={dialog.tabId} />
     case 'command-vars':

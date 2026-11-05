@@ -11,12 +11,15 @@ import {
 import { buildBanner, buildHttpBanner } from '@shared/banner'
 import { APP_NAME } from '@shared/brand'
 import { parseHeaders, usesToken } from '@shared/httpEnv'
-import { parseCurlCommand, type HttpRequestSpec } from '@shared/httpRequest'
-import { commandText, fillPlaceholders, placeholders } from '@shared/snippets'
+import { parseCurlCommand } from '@shared/httpRequest'
+import { extractVariables, runTests } from '@shared/httpTests'
+import { fillRequest, withDynamicValues } from '@shared/httpVars'
+import type { HttpWorkspace, SavedRequest } from '@shared/httpWorkspace'
+import { commandText, placeholders } from '@shared/snippets'
 import { makeT } from '../lib/i18n'
 import { errorMessage } from '../lib/util'
 import { registry } from '../terminal/registry'
-import { EMPTY_HTTP_PANEL, useApp, type Tab } from './appStore'
+import { EMPTY_HTTP_PANEL, useApp, type HttpRunResult, type Tab } from './appStore'
 
 const api = (): typeof window.xmt => window.xmt
 const DIM = '\x1b[38;5;244m'
@@ -72,7 +75,7 @@ export function openSession(session: SessionConfig): string {
   )
 }
 
-type PanelKey = 'sidebarOpen' | 'sftpPanelOpen' | 'commandsPanelOpen' | 'httpPanelOpen'
+type PanelKey = 'sidebarOpen' | 'sftpPanelOpen' | 'commandsPanelOpen' | 'httpPanelOpen' | 'httpPanelExpanded'
 
 /** Shows or hides a side panel; the choice is remembered in settings. */
 export function setPanelOpen(key: PanelKey, open: boolean): void {
@@ -153,10 +156,31 @@ export function reloadCommands(): Promise<boolean> {
   return updateLibrary(api().commands.list())
 }
 
-/** Fills {{placeholders}} in every field of a request. */
-export function fillRequest(spec: HttpRequestSpec, vars: Record<string, string>): HttpRequestSpec {
-  const fill = (text: string): string => fillPlaceholders(text, vars)
-  return { ...spec, url: fill(spec.url), headers: fill(spec.headers), body: fill(spec.body) }
+/** Applies a change to collections, variables or history; errors become a toast. */
+export async function updateHttpWorkspace(change: Promise<HttpWorkspace>): Promise<boolean> {
+  try {
+    useApp.getState().setHttpWorkspace(await change)
+    return true
+  } catch (err) {
+    useApp.getState().toast({ kind: 'error', text: errorMessage(err) })
+    return false
+  }
+}
+
+/** Stores a variable typed in the form or captured from a response. */
+export function setHttpVars(sessionId: string, patch: Record<string, string>): void {
+  const store = useApp.getState()
+  const vars = { ...store.httpWorkspace.vars[sessionId], ...patch }
+  // Shown at once: the field is controlled, and the disk catches up in the background.
+  store.setHttpWorkspace({ ...store.httpWorkspace, vars: { ...store.httpWorkspace.vars, [sessionId]: vars } })
+  void updateHttpWorkspace(api().http.setVars(sessionId, vars))
+}
+
+/** Fills the form's variables as they are right now, for one send. */
+function specToSend(tabId: string, sessionId: string | undefined): ReturnType<typeof fillRequest> {
+  const store = useApp.getState()
+  const panel = store.httpPanels[tabId] ?? EMPTY_HTTP_PANEL
+  return withDynamicValues(fillRequest(panel.spec, sessionId ? (store.httpWorkspace.vars[sessionId] ?? {}) : {}))
 }
 
 /** Sends the request panel's form of an HTTP tab and records the result. */
@@ -166,23 +190,78 @@ export async function sendHttpRequest(tabId: string): Promise<void> {
   // The panel has no stored state until its form is first edited.
   const panel = store.httpPanels[tabId] ?? EMPTY_HTTP_PANEL
   if (!tab || panel.pending) return
-  const spec = fillRequest(panel.spec, panel.vars)
-  store.patchHttpPanel(tabId, { pending: true, error: undefined })
+  const spec = specToSend(tabId, tab.sessionId)
+  store.patchHttpPanel(tabId, { pending: true, error: undefined, run: undefined })
   try {
     const response = await api().http.send(tabId, spec)
-    useApp.getState().patchHttpPanel(tabId, { pending: false, response })
+    useApp.getState().patchHttpPanel(tabId, { pending: false, response, testResults: runTests(spec.tests, response) })
     if (tab.sessionId) {
-      useApp.getState().addHttpHistory(tab.sessionId, {
-        id: crypto.randomUUID(),
-        spec: panel.spec,
-        status: response.status,
-        timeMs: response.timeMs,
-        at: Date.now()
-      })
+      const captured = extractVariables(spec.extract, response)
+      if (Object.keys(captured).length > 0) setHttpVars(tab.sessionId, captured)
+      void updateHttpWorkspace(
+        api().http.addHistory(tab.sessionId, { id: crypto.randomUUID(), spec: panel.spec, status: response.status, timeMs: response.timeMs, at: Date.now() })
+      )
     }
   } catch (err) {
-    useApp.getState().patchHttpPanel(tabId, { pending: false, error: errorMessage(err), response: undefined })
+    useApp.getState().patchHttpPanel(tabId, { pending: false, error: errorMessage(err), response: undefined, testResults: undefined })
   }
+}
+
+/** Opens a saved request in the form of a tab. */
+export function openSavedRequest(tabId: string, saved: SavedRequest): void {
+  useApp.getState().patchHttpPanel(tabId, { spec: saved.spec, savedId: saved.id, response: undefined, error: undefined, testResults: undefined, run: undefined })
+}
+
+/** Saves the form back to the request it came from; a new request asks for a name first. */
+export async function saveHttpRequest(tabId: string): Promise<void> {
+  const store = useApp.getState()
+  const panel = store.httpPanels[tabId] ?? EMPTY_HTTP_PANEL
+  const saved = store.httpWorkspace.requests.find((r) => r.id === panel.savedId)
+  if (!saved) {
+    store.openDialog({ kind: 'http-save', tabId })
+    return
+  }
+  await updateHttpWorkspace(
+    api()
+      .http.saveRequest({ id: saved.id, name: saved.name, folder: saved.folder, sessionId: saved.sessionId, spec: panel.spec })
+      .then((r) => r.workspace)
+  )
+  store.toast({ kind: 'success', text: makeT(store.settings.language)('savedFile', { name: saved.name }) })
+}
+
+const stoppedRuns = new Set<string>()
+
+export function stopHttpRun(tabId: string): void {
+  stoppedRuns.add(tabId)
+  void api().http.cancel(tabId)
+}
+
+/** Runs a folder's requests one after another, like Postman's runner; variables captured by one reach the next. */
+export async function runHttpFolder(tabId: string, title: string, requests: SavedRequest[]): Promise<void> {
+  const store = useApp.getState()
+  const tab = store.tabs.find((t) => t.id === tabId)
+  if (!tab || (store.httpPanels[tabId] ?? EMPTY_HTTP_PANEL).pending) return
+  stoppedRuns.delete(tabId)
+  const results: HttpRunResult[] = []
+  const update = (running: boolean): void =>
+    useApp.getState().patchHttpPanel(tabId, { pending: running, run: { title, total: requests.length, results: [...results], running } })
+  update(true)
+  for (const saved of requests) {
+    if (stoppedRuns.has(tabId)) break
+    const vars = tab.sessionId ? (useApp.getState().httpWorkspace.vars[tab.sessionId] ?? {}) : {}
+    const spec = withDynamicValues(fillRequest(saved.spec, vars))
+    const base = { id: saved.id, name: saved.name, method: saved.spec.method }
+    try {
+      const response = await api().http.send(tabId, spec)
+      results.push({ ...base, status: response.status, timeMs: response.timeMs, error: response.error, tests: runTests(spec.tests, response) })
+      const captured = extractVariables(spec.extract, response)
+      if (tab.sessionId && Object.keys(captured).length > 0) setHttpVars(tab.sessionId, captured)
+    } catch (err) {
+      results.push({ ...base, status: 0, timeMs: 0, error: errorMessage(err), tests: [] })
+    }
+    update(true)
+  }
+  update(false)
 }
 
 export function cancelHttpRequest(tabId: string): void {
@@ -199,7 +278,7 @@ export function loadCurlIntoPanel(tabId: string, command: string): string[] | nu
   const session = tab?.sessionId ? store.sessions.find((s) => s.id === tab.sessionId) : undefined
   const parsed = parseCurlCommand(command, session?.baseUrl ?? '')
   if (!parsed) return null
-  store.patchHttpPanel(tabId, { spec: parsed.spec, response: undefined, error: undefined })
+  store.patchHttpPanel(tabId, { spec: parsed.spec, savedId: undefined, response: undefined, error: undefined, testResults: undefined, run: undefined })
   if (!store.settings.httpPanelOpen) setPanelOpen('httpPanelOpen', true)
   return parsed.warnings
 }
