@@ -45,6 +45,8 @@ const MAX_TIMELINE_CHARS = 256 * 1024
 /** Named like the shell folders, so what a crash leaves behind is swept with them. */
 const WORK_DIR_PREFIX = `northshell-http-${process.pid}-req-`
 const RC_HEADER_RE = /^\s*header\s*=\s*"\s*([^:"\s]+)\s*:/i
+/** How curl logs a request header on HTTP/2 and HTTP/3, next to the `> Name: value` form. */
+const STREAM_HEADER_RE = /^\* \[HTTP\/\d\] \[\d+\] \[([^:\]\s]+): /
 const DEFAULT_TIMEOUT_SEC = 60
 const MAX_REDIRECTS = 10
 const REDIRECT_CODES = new Set([301, 302, 303, 307, 308])
@@ -60,30 +62,42 @@ interface RequestHeader {
   secret: boolean
 }
 
-/** Expands $TOKEN and $BASE_URL like the tab's shell does, so Send and "Run in terminal" match. */
-function expandVars(text: string, environment: HttpEnvironment, what: string): string {
+/**
+ * Expands $TOKEN and $BASE_URL like the tab's shell does, so Send and "Run in terminal" match. The token is
+ * for the environment's own host only: a request from an imported file must not be able to carry it elsewhere.
+ */
+function expandVars(text: string, environment: HttpEnvironment, what: string, home: boolean): string {
   return text.replace(VAR_RE, (_m, braced: string | undefined, bare: string | undefined) => {
     if ((braced ?? bare) === 'BASE_URL') return environment.baseUrl
+    if (!home) throw new Error(`${what} uses $TOKEN, which is sent only to ${originOf(environment.baseUrl)}`)
     if (!environment.token) throw new Error(`${what} uses $TOKEN, but this environment has no token`)
     return environment.token
   })
 }
 
+/** The token as typed and as it looks in a query string; the interface gets neither. */
+function maskToken(text: string, token: string | undefined): string {
+  if (!token) return text
+  return [token, encodeURIComponent(token)].reduce((out, secret) => out.split(secret).join('••••'), text)
+}
+
 /** Basic auth is encoded while the header is built, so its $TOKEN has to be expanded before that. */
-function expandedAuth(auth: RequestAuth | undefined, environment: HttpEnvironment): RequestAuth | undefined {
-  if (auth?.type === 'basic') return { ...auth, username: expandVars(auth.username, environment, 'The user name'), password: expandVars(auth.password, environment, 'The password') }
-  if (auth?.type === 'apikey' && auth.in === 'query') return { ...auth, value: expandVars(auth.value, environment, 'The API key') }
+function expandedAuth(auth: RequestAuth | undefined, environment: HttpEnvironment, home: boolean): RequestAuth | undefined {
+  if (auth?.type === 'basic') {
+    return { ...auth, username: expandVars(auth.username, environment, 'The user name', home), password: expandVars(auth.password, environment, 'The password', home) }
+  }
+  if (auth?.type === 'apikey' && auth.in === 'query') return { ...auth, value: expandVars(auth.value, environment, 'The API key', home) }
   return auth
 }
 
-function requestHeaders(spec: HttpRequestSpec, environment: HttpEnvironment): RequestHeader[] {
+function requestHeaders(spec: HttpRequestSpec, environment: HttpEnvironment, home: boolean): RequestHeader[] {
   const lines = effectiveHeaders(spec, environment.defaultHeaderNames)
   const { headers, invalid } = parseHeaders(lines.join('\n'))
   if (invalid.length > 0) throw new Error(`Invalid header: ${lines[invalid[0] - 1]}`)
   const apiKey = spec.auth?.type === 'apikey' && spec.auth.in === 'header' ? spec.auth.name.toLowerCase() : ''
   return headers.map((h) => ({
     name: h.name,
-    value: expandVars(h.value, environment, h.name),
+    value: expandVars(h.value, environment, h.name, home),
     secret: CREDENTIAL_HEADER_RE.test(h.name) || new RegExp(VAR_RE.source).test(h.value) || h.name.toLowerCase() === apiKey
   }))
 }
@@ -269,11 +283,14 @@ export function redactTimeline(stderr: string, secretHeaders: string[], token: s
     const line = raw.replace(/\r$/, '')
     if (!/^[*<>] /.test(line)) continue
     const header = /^> ([^:\s]+):/.exec(line)
-    const name = header?.[1]?.toLowerCase() ?? ''
-    out.push(header && (names.has(name) || CREDENTIAL_HEADER_RE.test(name)) ? `> ${header[1]}: ••••` : line)
+    const stream = STREAM_HEADER_RE.exec(line)
+    const name = (header?.[1] ?? stream?.[1] ?? '').toLowerCase()
+    const secret = names.has(name) || CREDENTIAL_HEADER_RE.test(name)
+    if (secret && header) out.push(`> ${header[1]}: ••••`)
+    else if (secret && stream) out.push(`${stream[0]}••••]`)
+    else out.push(line)
   }
-  const text = out.join('\n').slice(0, MAX_TIMELINE_CHARS)
-  return token ? text.split(token).join('••••') : text
+  return maskToken(out.join('\n').slice(0, MAX_TIMELINE_CHARS), token)
 }
 
 /** One curl run without -L. Headers go through a 0600 file, so the token never shows up in `ps`. */
@@ -290,7 +307,9 @@ async function curlOnce(index: number, hop: Hop, ctx: HopContext): Promise<HttpR
     args.push('-H', `@${file('request-headers')}`)
   }
   if (!head) args.push(...(await dataArgs(index, hop.data, ctx.dir)))
-  args.push('--url', hop.url)
+  // The URL may hold the token or an API key, and argv is visible in `ps`.
+  await writeFile(file('url'), `url = ${configValue(hop.url)}\n`, { mode: 0o600 })
+  args.push('-K', file('url'))
 
   const res = await runCurl(ctx.opts.curl ?? CURL, args, ctx.environment.env, (ctx.timeoutSec + 5) * 1000, ctx.opts.signal)
   const info = writeOut(res.stdout)
@@ -344,10 +363,14 @@ function nextHop(hop: Hop, status: number, url: string): Hop {
 
 /** Sends one request with the system curl (no shell), following redirects itself when asked. */
 export async function runHttpRequest(spec: HttpRequestSpec, environment: HttpEnvironment, opts: RunOptions = {}): Promise<HttpResponseInfo> {
-  const auth = expandedAuth(spec.auth, environment)
-  const url = resolveRequestUrl(environment.baseUrl, expandVars(withAuthQuery(spec.url.trim(), auth), environment, 'The URL'))
+  // Where the request goes decides whether the token may be used, so that comes before any expansion.
+  const target = resolveRequestUrl(environment.baseUrl, spec.url.trim())
+  if (!target) throw new Error('Use a path like /users or a full http(s):// URL')
+  const home = originOf(target) === originOf(environment.baseUrl)
+  const auth = expandedAuth(spec.auth, environment, home)
+  const url = resolveRequestUrl(environment.baseUrl, expandVars(withAuthQuery(spec.url.trim(), auth), environment, 'The URL', home))
   if (!url) throw new Error('Use a path like /users or a full http(s):// URL')
-  let hop: Hop = { url, method: spec.method, data: requestData(spec), headers: requestHeaders({ ...spec, auth }, environment) }
+  let hop: Hop = { url, method: spec.method, data: requestData(spec), headers: requestHeaders({ ...spec, auth }, environment, home) }
   const dir = opts.workDir ?? (await mkdtemp(join(tmpdir(), WORK_DIR_PREFIX)))
   const ctx: HopContext = { dir, environment, timeoutSec: spec.timeoutSec ?? opts.timeoutSec ?? DEFAULT_TIMEOUT_SEC, insecure: spec.insecure === true, opts }
   try {
@@ -360,7 +383,15 @@ export async function runHttpRequest(spec: HttpRequestSpec, environment: HttpEnv
       const next = spec.followRedirects && redirects < MAX_REDIRECTS ? redirectTarget(res, hop.url) : null
       if (!next) {
         opts.onBodyFile?.(join(dir, `${redirects}-body`))
-        return { ...res, timeMs: totalMs, redirects, timeline: timeline.join('\n\n') }
+        return {
+          ...res,
+          timeMs: totalMs,
+          redirects,
+          timeline: timeline.join('\n\n'),
+          url: maskToken(res.url, environment.token),
+          headers: res.headers.map((h) => ({ ...h, value: maskToken(h.value, environment.token) })),
+          ...(res.error ? { error: maskToken(res.error, environment.token) } : {})
+        }
       }
       hop = nextHop(hop, res.status, next)
     }

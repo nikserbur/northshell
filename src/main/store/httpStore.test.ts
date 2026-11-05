@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it, vi } from 'vitest'
@@ -72,6 +72,24 @@ describe('HttpStore', () => {
     writeFileSync(join(dir, 'e.json'), '{"requests":"nope"}')
     expect(store('e.json').workspace().requests).toEqual([])
     expect(error).toHaveBeenCalled()
+    error.mockRestore()
+  })
+
+  it('keeps every valid entry and a copy of the file when one entry is bad', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const good = { id: 'keep', name: 'Good', folder: '', spec, updatedAt: 1 }
+    const item = { id: 'h1', spec, status: 200, timeMs: 1, at: 1 }
+    writeFileSync(
+      join(dir, 'bad-entry.json'),
+      JSON.stringify({ requests: [good, { id: 'broken', name: 'Bad', folder: '', spec: { method: 'NOPE' }, updatedAt: 1 }], vars: { env: { a: '1' }, bad: 7 }, history: { env: [item, { id: 'x' }] } })
+    )
+    const s = store('bad-entry.json')
+    const w = s.workspace()
+    expect(w.requests.map((r) => r.id)).toEqual(['keep'])
+    expect(w.vars).toEqual({ env: { a: '1' } })
+    expect(w.history.env.map((h) => h.id)).toEqual(['h1'])
+    expect(readdirSync(dir).some((f) => f.startsWith('bad-entry.json.invalid-'))).toBe(true)
+    expect(s.saveRequest({ name: 'New', folder: '', spec }).workspace.requests.map((r) => r.name)).toEqual(['Good', 'New'])
     error.mockRestore()
   })
 })

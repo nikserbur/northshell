@@ -233,6 +233,7 @@ describe('buildCurlCommand with the structured form', () => {
     expect(buildCurlCommand({ ...base, auth: { type: 'basic', username: 'ann', password: '$TOKEN' } })).toContain(`-u 'ann:'"$TOKEN"`)
     expect(buildCurlCommand({ ...base, auth: { type: 'apikey', name: 'X-Key', value: 'k', in: 'header' } })).toContain(`-H 'X-Key: k'`)
     expect(buildCurlCommand({ ...base, url: '/x?a=1', auth: { type: 'apikey', name: 'key', value: 'k k', in: 'query' } })).toContain("/x?a=1&key=k%20k'")
+    expect(buildCurlCommand({ ...base, auth: { type: 'apikey', name: 'key', value: '$TOKEN', in: 'query' } })).toContain(`/x?key='"$TOKEN"`)
   })
 
   it('keeps a header typed by hand over the auth setting', () => {

@@ -26,6 +26,7 @@ describe('query table', () => {
   it('adds an API key to the query, encoded', () => {
     expect(withAuthQuery('/x#h', { type: 'apikey', name: 'api key', value: 'a/b', in: 'query' })).toBe('/x?api%20key=a%2Fb#h')
     expect(withAuthQuery('/x', { type: 'bearer', token: 't' })).toBe('/x')
+    expect(withAuthQuery('/x', { type: 'apikey', name: 'k', value: 'a b$TOKEN', in: 'query' })).toBe('/x?k=a%20b$TOKEN')
   })
 })
 

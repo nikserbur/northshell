@@ -1,26 +1,62 @@
 import { randomUUID } from 'node:crypto'
+import { copyFileSync, existsSync } from 'node:fs'
 import { emptyWorkspace, type HttpHistoryItem, type HttpWorkspace, type ImportedCollection, type SavedRequest, type SavedRequestInput } from '@shared/httpWorkspace'
 import { JsonFile } from './jsonFile'
-import { httpWorkspaceSchema } from './schemas'
+import { httpHistoryItemSchema, httpVarsSchema, httpWorkspaceSchema } from './schemas'
 
 const MAX_HISTORY = 100
 export const MAX_SAVED_REQUESTS = 5000
 /** A history entry is for re-opening a request, not for keeping big uploads around. */
 const MAX_HISTORY_ITEM_CHARS = 64 * 1024
 
+const savedRequestSchema = httpWorkspaceSchema.shape.requests.element
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
+}
+
+/** Keeps every entry that is still valid, so one hand edit or a bad import cannot cost the whole collection. */
+function salvage(raw: unknown): HttpWorkspace {
+  const root = asRecord(raw)
+  const requests = Array.isArray(root.requests) ? root.requests : []
+  const vars = Object.entries(asRecord(root.vars)).flatMap(([id, v]) => {
+    const parsed = httpVarsSchema.safeParse(v)
+    return parsed.success ? [[id, parsed.data] as const] : []
+  })
+  const history = Object.entries(asRecord(root.history)).map(([id, list]) => {
+    const items = (Array.isArray(list) ? list : []).flatMap((item) => {
+      const parsed = httpHistoryItemSchema.safeParse(item)
+      return parsed.success ? [parsed.data] : []
+    })
+    return [id, items] as const
+  })
+  return {
+    requests: requests.flatMap((r) => {
+      const parsed = savedRequestSchema.safeParse(r)
+      return parsed.success ? [parsed.data] : []
+    }),
+    vars: Object.fromEntries(vars),
+    history: Object.fromEntries(history)
+  }
+}
+
 /** Collections, variables and history in http-workspace.json (owner-only, like every store). */
 export class HttpStore {
   private file: JsonFile<unknown>
 
-  constructor(path: string) {
+  constructor(private readonly path: string) {
     this.file = new JsonFile<unknown>(path, emptyWorkspace)
   }
 
   workspace(): HttpWorkspace {
-    const parsed = httpWorkspaceSchema.safeParse(this.file.read())
+    const raw = this.file.read()
+    const parsed = httpWorkspaceSchema.safeParse(raw)
     if (parsed.success) return parsed.data
-    console.error('[http] http-workspace.json has an unexpected shape; starting empty', parsed.error.message)
-    return emptyWorkspace()
+    // The next save rewrites the file, so what could not be read is kept aside first.
+    const backup = `${this.path}.invalid-${Date.now()}.bak`
+    if (existsSync(this.path)) copyFileSync(this.path, backup)
+    console.error(`[http] some entries of ${this.path} are invalid and were left out; a copy is in ${backup}`, parsed.error.message)
+    return salvage(raw)
   }
 
   private update(change: (w: HttpWorkspace) => HttpWorkspace): HttpWorkspace {
