@@ -12,6 +12,8 @@ import { MonitorExpanded } from './monitor/MonitorExpanded'
 import { TopCard } from './monitor/TopCard'
 import { Sparkline } from './Sparkline'
 
+const LONG_MOUNT = 8
+
 function Bar({ label, value, pct }: { label: string; value: string; pct: number }) {
   return (
     <div className={`bar-line ${levelClass(pct)}`}>
@@ -160,7 +162,7 @@ export function MonitorPanel() {
         </div>
         <Sparkline values={history.mem} max={100} height={42} color="var(--spark-2, var(--violet))" />
         {s.swapTotal > 0 && (
-          <Bar label={t('swap')} value={`${formatBytes(s.swapUsed)} / ${formatBytes(s.swapTotal)}`} pct={swapPct} />
+          <Bar label={t('swap')} value={formatBytes(s.swapUsed)} pct={swapPct} />
         )}
         <Bar label={t('memory')} value={formatPercent(memPct)} pct={memPct} />
         {pickedUsage && <UserLine user={pickedUsage.user}>{formatBytes(pickedUsage.mem)}</UserLine>}
@@ -247,7 +249,7 @@ export function MonitorPanel() {
         {s.disks.map((d) => {
           const pct = d.total > 0 ? (d.used / d.total) * 100 : 0
           return (
-            <div key={`${d.fs}${d.mount}`} className="mon-disk-row">
+            <div key={`${d.fs}${d.mount}`} className={`mon-disk-row ${d.mount.length > LONG_MOUNT ? 'stacked' : ''}`}>
               <Bar label={d.mount} value={`${formatBytes(d.used)} / ${formatBytes(d.total)}`} pct={pct} />
               {remote && <DiskOwnersLine monitorKey={monitorKey} mount={d.mount} state={owners?.[d.mount]} picked={picked} />}
             </div>

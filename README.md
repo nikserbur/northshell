@@ -10,7 +10,7 @@ A free, open-source MobaXterm alternative for macOS: an SSH client and terminal 
 [![Platform](https://img.shields.io/badge/macOS-13%2B%20·%20Apple%20Silicon-555)](#requirements)
 [![License](https://img.shields.io/badge/license-MIT-555)](LICENSE)
 
-[Download](#installation) · [Features](#features) · [Screenshots](#screenshots) · [Getting started](#getting-started) · [Build from source](#building-from-source) · [Русский](README.ru.md)
+[Download](#installation) · [Features](#features) · [Screenshots](#screenshots) · [Getting started](#getting-started) · [Version history](#version-history) · [Build from source](#building-from-source) · [Русский](README.ru.md)
 
 <img src="docs/screenshots/main.png" alt="Northshell main window: sessions, SFTP browser, terminal, command library and server monitor" />
 
@@ -44,16 +44,23 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 
 <img src="docs/screenshots/command-library.png" width="720" alt="Command library panel next to the terminal: commands private to the connection and shared commands, with two of them already run" />
 
-**HTTP environments (curl)**
-- A connection type for APIs with no SSH at all: a local terminal prepared for repeated `curl` requests to one server.
-- `$BASE_URL` and `$TOKEN` (token kept in the Keychain) are set in the shell, and your default headers (e.g. `Authorization: Bearer $TOKEN`) are added to every `curl` automatically.
-- Optional `curl -k` for self-signed certificates; keep the environment's typical requests in its own section of the command library.
-- **HTTP request panel** (`⇧⌘R`): method, path, headers and body in a form instead of hand-written `curl` — `⌘↩` sends, and the response appears alongside with status, time, size, headers and highlighted JSON.
-- Paste a curl command (e.g. “Copy as cURL” from browser dev tools) into the address field and the form fills itself. `{{id}}` parameters are asked for right in the panel; a request can run in the terminal, be copied as curl or saved to the library and opened back in the form later.
+**HTTP client (like Postman and Insomnia, on top of curl)**
+- A connection type for APIs with no SSH at all: a request workspace that fills the window (`⇧⌘R` shows or hides it, one button puts the terminal back beside it). The terminal stays ready for hand-written `curl`: `$BASE_URL` and `$TOKEN` (token kept in the Keychain) are set, and your default headers are added to every `curl`.
+- **Requests:** query parameters, headers and form fields as tables with an on/off switch per row (or as plain text); **auth** — Bearer, Basic, API key in a header or the query; **body** — JSON, XML, text, urlencoded form, multipart form with files, a whole file, GraphQL with variables; a timeout, `-k` and redirects per request.
+- **Responses:** status, time and size, formatted body with folding and search (`⌘F`), raw view, preview of HTML (without scripts or external resources) and images, headers, cookies, a time breakdown (DNS, connect, TLS, waiting, download), curl's full log with credentials masked. Save the whole response to a file, whatever its size.
+- **Collections and history:** folders of saved requests (`⌘S`), kept per environment or shared; history you can search. Import **Postman** v2 and **Insomnia** collections, export to Postman.
+- **Variables:** `{{name}}` in any field, stored per environment, plus `{{$uuid}}`, `{{$timestamp}}`, `{{$isoTimestamp}}`, `{{$randomInt}}`. A value from a response can go into a variable — log in once, and the next requests use the token.
+- **Checks and runs:** status, time, size, header and JSON-path checks for each request, no scripting needed; run a whole folder in order and get a report.
+- **Cookies** are kept per environment like in a browser, and you can view and delete them. **Code** for curl, JavaScript fetch, Python requests and HTTPie; paste a curl command (e.g. “Copy as cURL” from dev tools) into the address field and the form fills itself.
+- The environment's headers and token go only to its own host; other hosts and redirects to them don't get them.
+
+<img src="docs/screenshots/http-workspace.png" width="720" alt="HTTP workspace: a collection of saved requests on the left, GET /orders with its query parameters, and the formatted JSON response with 3 of 3 checks passed" />
+
+<img src="docs/screenshots/http-timing.png" width="720" alt="HTTP workspace with environment variables on the left and the time breakdown of a response: DNS, connect, TLS, waiting and download" />
+
+<img src="docs/screenshots/http-request.png" width="720" alt="The request panel beside the terminal: the same request and response in a narrower column" />
 
 <img src="docs/screenshots/http-environment.png" width="720" alt="New HTTP environment dialog: base URL, token, curl headers and the SSH / HTTP switch" />
-
-<img src="docs/screenshots/http-request.png" width="720" alt="HTTP request panel: GET /orders with a {{limit}} parameter, the extra header and the highlighted JSON response next to the terminal" />
 
 **SFTP browser and editor**
 - File panel next to the terminal with breadcrumbs, sorting by name, size or date, and a resizable width.
@@ -64,12 +71,23 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 
 **Server monitoring**
 - Status bar with CPU, memory, video memory (GPU), disk, network, load, uptime and users for the active connection.
-- Monitor panel (`⇧⌘M`) with CPU, memory, video memory and network graphs, all disks, swap and top processes.
+- Monitor panel (`⇧⌘M`) with CPU, memory, video memory, network and **disk read/write speed** graphs, all disks and swap.
+- **Who is loading the host:** top users by CPU, RAM, disk or network right in the panel, and a user picker that shows that user's share on every card and their processes.
+- **Enlarge** (the ⤢ button) for an htop-like view: every process with sorting by any column, search, a process tree and the full command line; a table of users; and a disk page with the speed per device, who is reading and writing now, and **who takes up the space** on each volume.
+- Disk speed comes from kernel counters on every update (every 3 seconds by default), so short bursts aren't lost and it costs next to nothing. Details per process are collected only while the panel is open.
+- Space per user needs a walk over the files, so it runs when you press the button, at the lowest CPU and disk priority, and the result is kept with its time.
+- What's visible depends on the server: on Linux, reads and writes of other users' processes are visible to root only (the kernel's rule), so connect as root to see everyone; traffic per user is counted from TCP connections (`ss`), so UDP isn't in it; macOS has no per-process disk counters, so only its total speed shows.
 - Mac memory is counted like Activity Monitor's “Memory Used” (app + wired + compressed), the same for this Mac and for macOS servers.
 - Video memory: NVIDIA (`nvidia-smi`) and AMD (`amdgpu`) on Linux, and Mac GPUs. Apple Silicon shares memory with the CPU, so the GPU's share is macOS's estimate (⅔ of RAM up to 36 GB, ¾ above, or `iogpu.wired_limit_mb`), marked with “≈”.
 - No agent to install: statistics are read over the same SSH connection (Linux and macOS servers).
 
-<img src="docs/screenshots/monitor-gpu.png" width="720" alt="Monitor panel with the GPU card next to CPU and memory: Apple M1 Pro using 318 MB of about 11 GB of unified memory, and the same figure in the status bar" />
+<img src="docs/screenshots/monitor-users.png" width="720" alt="Monitor panel of a server: disk I/O card with read and write speed, volumes with their biggest owners, and users ranked by disk load" />
+
+| Who is loading the disk and who takes up the space | All processes, sorted like in htop |
+|---|---|
+| ![Disks view: speed per device, users by current reads and writes, users by space on each volume](docs/screenshots/monitor-disks.png) | ![Processes view: PID, user, CPU, memory, disk and network for every process, sorted by disk reads](docs/screenshots/monitor-processes.png) |
+
+<img src="docs/screenshots/monitor-gpu.png" width="720" alt="Monitor panel with the GPU card next to CPU and memory, and the same figure in the status bar" />
 
 **Appearance**
 - Six themes: Dark, Light, System, Visual Studio, MobaXterm and Windows 95.
@@ -156,7 +174,7 @@ Download the new DMG and drag Northshell into Applications again, replacing the 
 5. **Work with files.** Drag files from Finder onto the SFTP panel to upload, double-click a file to edit it, press `⌘S` to save. Type in the filter field and press Enter to search the whole folder tree.
 6. **Watch the server.** The status bar shows live statistics; click it or press `⇧⌘M` for the full monitor.
 7. **Save frequent commands.** Press `⇧⌘L` to open the command library, click **+**, and choose whether the command is shared or belongs to one connection. Double-click a command to run it.
-8. **Work with an HTTP API.** Click **HTTP** at the bottom of the sidebar (or `⌥⌘N`), enter a base URL, an optional token and headers, then **Save & open**. In the terminal run `curl $BASE_URL/health` — the headers are added for you.
+8. **Work with an HTTP API.** Click **HTTP** at the bottom of the sidebar (or `⌥⌘N`), enter a base URL, an optional token and headers, then **Save & open**. Type a path, press `⌘↩`, and `⌘S` saves the request to a collection. Have a Postman or Insomnia collection? Import it with the button above the list. In the terminal `curl $BASE_URL/health` works too, with the headers added for you.
 9. **Change the look.** Open **Settings → Appearance** (`⌘,`) to choose a theme and terminal colours.
 
 ## Keyboard shortcuts
@@ -167,7 +185,8 @@ Download the new DMG and drag Northshell into Applications again, replacing the 
 | New SSH session | `⌘N` |
 | New HTTP environment | `⌥⌘N` |
 | Command library | `⇧⌘L` |
-| HTTP request panel | `⇧⌘R` |
+| HTTP workspace | `⇧⌘R` |
+| Send the request / save it | `⌘↩` / `⌘S` |
 | Command palette | `⌘P` |
 | Close tab or editor | `⌘W` |
 | Switch tab | `⌘1` … `⌘9`, `⌃Tab`, `⌃⇧Tab` |
@@ -185,8 +204,10 @@ Download the new DMG and drag Northshell into Applications again, replacing the 
 - Remote commands for monitoring and search are fixed scripts with quoted arguments; a server-side search stops on its own after 13 seconds.
 - SFTP downloads never overwrite existing files and reject unsafe names; deleting a symlink never touches its target.
 - HTTP environments write their curl headers to a private temporary folder (owner-only permissions) that is deleted when the tab closes.
+- The environment's token never reaches the interface or curl's command line, and the request log masks credentials. Collections, variables and cookies are stored owner-only but **not encrypted**, so keep secrets in `$TOKEN`; a token typed into a form is saved as typed.
+- A collection file or a pasted curl command cannot choose a local file to send: the file has to be picked by hand.
 
-App data lives in `~/Library/Application Support/Northshell/` (`sessions.json`, `commands.json`, `settings.json`, `known_hosts.json`).
+App data lives in `~/Library/Application Support/Northshell/` (`sessions.json`, `commands.json`, `settings.json`, `known_hosts.json`, `http-workspace.json`, `http-cookies/`).
 
 ## Northshell and other SSH clients for Mac
 
@@ -211,7 +232,10 @@ Yes. It is open source under the MIT license, with no account, subscription or t
 The published build is for Apple Silicon. Intel Macs can build it from source; a universal build is not published yet.
 
 **Do I need to install anything on my servers?**
-No. Monitoring uses standard commands (`/proc` on Linux, `sysctl` and `vm_stat` on macOS) over the existing SSH connection. SFTP needs the usual `sftp-server`, which is part of OpenSSH.
+No. Monitoring uses standard commands (`/proc`, `ps` and `ss` on Linux; `sysctl`, `vm_stat` and `nettop` on macOS) over the existing SSH connection. SFTP needs the usual `sftp-server`, which is part of OpenSSH.
+
+**Does it replace Postman or Insomnia?**
+For everyday work with one API, yes: collections, variables, auth, every body type, checks, folder runs, cookies, and import of their collections. See [Limitations](#limitations) for what it doesn't do. Everything stays on your Mac, with no account.
 
 **Which authentication methods are supported?**
 Passwords, private keys (OpenSSH, with or without a passphrase), ssh-agent and keyboard-interactive prompts such as one-time codes. Hosts from `~/.ssh/config` can be imported.
@@ -230,6 +254,42 @@ The app is not notarized by Apple. See [First launch](#first-launch) for the one
 - Apple Silicon build only; not signed or notarized by Apple.
 - No X11 forwarding, RDP, VNC, serial connections, port forwarding or jump hosts yet.
 - Server monitoring supports Linux and macOS hosts; on BusyBox-only systems some values may be missing.
+- The HTTP client has checks and value capture instead of JavaScript scripts, and has no OAuth 2 sign-in flows, WebSocket or gRPC requests, mock servers or cloud sync.
+
+## Version history
+
+### 1.6.0 — 2026-11-05
+- **Disk speed:** reads and writes per host and device, with a graph in the monitor panel.
+- **Who is loading the host:** top users by CPU, RAM, disk and network, and a user picker in the monitor.
+- **Enlarged monitor:** an htop-like process table with sorting, search and a tree; a table of users; a disk page with current reads and writes per user and space per user on each volume.
+- **HTTP client on a par with Postman and Insomnia:** a full-window workspace, collections with folders, import from Postman and Insomnia, export to Postman, persistent history and variables, auth settings, every body type including multipart and GraphQL, cookies, checks and value capture, folder runs, a time breakdown, curl's log, HTML and image preview, saving responses, code for other tools.
+
+### 1.5.2 — 2026-11-05
+- `⌘A` selects the command you are typing (again: all output); `⌫` deletes it and typing replaces it, and a part selected with the mouse works the same way. `Ctrl+A` jumps to the line start again.
+
+### 1.5.1 — 2026-11-03
+- HTTP request panel (`⇧⌘R`): a form instead of hand-written curl, with the response next to the terminal; a pasted curl command fills the form.
+- Video memory in the status bar and the monitor: NVIDIA and AMD on Linux, the GPU of a Mac.
+- The SFTP panel follows `cd` in the terminal.
+- Fixed: macOS servers showed about 1.5 GB less memory than Activity Monitor.
+
+### 1.4.0 — 2026-10-16
+- Command library (`⇧⌘L`): shared and per-connection commands, `{{placeholders}}`, a plain `commands.json`, import and export.
+- HTTP environments: a local terminal with `$BASE_URL`, `$TOKEN` from the Keychain and default curl headers.
+
+### 1.3.0 — 2026-10-12
+- Termora is now Northshell; sessions and settings move over on first launch.
+- Installation guide, FAQ, comparison with other Mac SSH clients.
+
+### 1.2.0 — 2026-10-12
+- MobaXterm theme, output highlighting and an info box on connect.
+- A status bar that never clips, and icon-only buttons in narrow panels.
+
+### 1.1.0 — 2026-10-12
+- Visual Studio and Windows 95 themes, a theme picker with previews, hover tooltips with shortcuts, resizable side panels.
+
+### 1.0.0 — 2026-10-12
+- First release: saved sessions, password, key, agent and 2FA login, Keychain secrets, host key checks, terminal tabs with MultiExec, an SFTP browser with a built-in editor, server monitoring with no agent.
 
 ## Building from source
 
@@ -244,7 +304,7 @@ npm test         # unit tests
 npm run dist     # build the DMG into dist/
 ```
 
-End-to-end tests drive the built app with Playwright: run `npm run build && npm run e2e`. Set `XMT_E2E_SSH_HOST`, `XMT_E2E_SSH_PORT`, `XMT_E2E_SSH_USER` and `XMT_E2E_SSH_KEY` to include the SSH and SFTP scenarios.
+End-to-end tests drive the built app with Playwright: run `npm run build && npm run e2e`. Set `XMT_E2E_SSH_HOST`, `XMT_E2E_SSH_PORT`, `XMT_E2E_SSH_USER` and `XMT_E2E_SSH_KEY` to include the SSH and SFTP scenarios; with them `npm test` also runs the monitor against that server.
 
 Built with Electron, React, TypeScript, xterm.js, ssh2, node-pty and CodeMirror.
 

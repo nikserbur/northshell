@@ -317,8 +317,8 @@
   grid-template-columns: minmax(150px, 1.25fr) repeat(5, minmax(112px, 0.85fr)) minmax(150px, 1fr) minmax(250px, 1.45fr);
 }
 
-/* Eight cards are narrower: let "/ total" drop under the big number instead of being cut. */
-.monitor.has-gpu .mon-big {
+/* The cards are narrow: let "/ total" drop under the big number instead of being cut. */
+.monitor .mon-big {
   flex-wrap: wrap;
   row-gap: 4px;
   font-size: 23px;

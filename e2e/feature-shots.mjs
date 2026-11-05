@@ -127,7 +127,7 @@ writeFileSync(
       saved('List orders', 'Shop API / Orders', {
         url: '/orders?limit={{limit:3}}&status=paid',
         headers: 'X-Request-Id: {{$uuid}}\n# X-Debug: 1',
-        auth: { type: 'bearer', token: '$TOKEN' },
+        auth: { type: 'bearer', token: '{{token}}' },
         tests: [
           { target: 'status', path: '', op: 'eq', value: '200', enabled: true },
           { target: 'json', path: '$.data[0].currency', op: 'eq', value: 'EUR', enabled: true },
@@ -138,7 +138,7 @@ writeFileSync(
       saved('Cancel order', 'Shop API / Orders', { method: 'DELETE', url: '/orders/{{orderId}}' }),
       saved('Upload invoice', 'Shop API / Files', { method: 'PUT', url: '/invoices/{{orderId}}', bodyKind: 'multipart', form: [{ name: 'note', value: 'paid', enabled: true }] })
     ],
-    vars: { [apiSession]: { limit: '3', email: 'ada@example.com', orderId: '10482' } },
+    vars: { [apiSession]: { limit: '3', email: 'ada@example.com', orderId: '10482', token: 'demo-token' } },
     history: {}
   })
 )
@@ -176,6 +176,7 @@ writeFileSync(
   ].join('\n')
 )
 const sshd = spawn('/usr/sbin/sshd', ['-D', '-f', join(sshDir, 'sshd_config')], { stdio: 'ignore' })
+process.on('exit', () => sshd.kill())
 
 const app = await electron.launch({
   args: [join(root, 'e2e', 'launch-main.cjs')],

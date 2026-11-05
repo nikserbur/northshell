@@ -9,8 +9,9 @@
 
 .mon-user-line {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
+  gap: 1px 5px;
   min-width: 0;
   padding: 3px 6px;
   border-radius: var(--radius-s);
@@ -26,16 +27,21 @@
 
 .mon-user-line b {
   margin-left: auto;
-  flex: none;
+  min-width: 0;
   font: 600 11px var(--font-mono);
   color: var(--text-0);
-  white-space: nowrap;
 }
 
 .mon-disk-row {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+/* A long mount point gets its own line, or it would be cut down to "/…" next to the sizes. */
+.mon-disk-row.stacked .bar-line .top {
+  flex-direction: column;
+  gap: 1px;
 }
 
 .mon-link {
@@ -217,6 +223,10 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
+}
+
+.mon-toolbar .mon-user-select {
+  flex: 0 1 190px;
 }
 
 .mon-toolbar .segmented.sm button {
