@@ -115,6 +115,7 @@ void app.whenReady().then(() => {
   )
 
   let localMonitor: LocalMonitor | null = null
+  let localDetail = false
   const setLocalMonitor = (on: boolean): void => {
     localMonitor?.stop()
     localMonitor = null
@@ -123,6 +124,7 @@ void app.whenReady().then(() => {
         () => settings.get().monitorInterval,
         (snapshot) => send(IPC.monitorSnapshot, { id: LOCAL_MONITOR_ID, snapshot })
       )
+      localMonitor.setDetail(localDetail)
       localMonitor.start()
     }
   }
@@ -137,6 +139,10 @@ void app.whenReady().then(() => {
     prompts,
     http,
     setLocalMonitor,
+    setLocalMonitorDetail: (on) => {
+      localDetail = on
+      localMonitor?.setDetail(on)
+    },
     onSettingsChanged: () => {
       nativeTheme.themeSource = nativeSource(settings.get().uiTheme)
       if (localMonitor) setLocalMonitor(true)

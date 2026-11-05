@@ -209,6 +209,20 @@ export function monitorKeyFor(tab: Tab | undefined): string {
   return !tab || tab.kind !== 'ssh' ? LOCAL_MONITOR_ID : tab.id
 }
 
+/** Walks one file system of a server to see who owns what; the result stays until the tab closes. */
+export async function scanDiskOwners(key: string, mount: string): Promise<void> {
+  const store = useApp.getState()
+  const prev = store.diskOwners[key]?.[mount]
+  if (prev?.running) return
+  store.setDiskOwners(key, mount, { running: true, result: prev?.result })
+  try {
+    const result = await api().monitor.diskOwners(key, mount)
+    useApp.getState().setDiskOwners(key, mount, { running: false, result })
+  } catch (err) {
+    useApp.getState().setDiskOwners(key, mount, { running: false, result: prev?.result, error: errorMessage(err) })
+  }
+}
+
 function notifyDownloadsFinished(tabId: string, localPath: string): void {
   const store = useApp.getState()
   const pending = store.transfers.some(

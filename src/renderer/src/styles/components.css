@@ -373,6 +373,11 @@ select.input {
   width: min(440px, 100%);
 }
 
+.modal.full {
+  width: min(1480px, 100%);
+  height: calc(100vh - 48px);
+}
+
 .modal-head {
   display: flex;
   align-items: center;

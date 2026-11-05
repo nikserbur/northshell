@@ -299,7 +299,7 @@
   border-top: 1px solid var(--line);
   background: var(--surface-1);
   display: grid;
-  grid-template-columns: minmax(230px, 1.25fr) repeat(4, minmax(160px, 1fr)) minmax(230px, 1.3fr);
+  grid-template-columns: minmax(200px, 1.1fr) repeat(4, minmax(150px, 1fr)) minmax(190px, 1.1fr) minmax(290px, 1.5fr);
   gap: 1px;
   overflow-x: auto;
   background-color: var(--line);
@@ -314,10 +314,10 @@
 }
 
 .monitor.has-gpu {
-  grid-template-columns: minmax(190px, 1.1fr) repeat(5, minmax(130px, 1fr)) minmax(240px, 1.4fr);
+  grid-template-columns: minmax(180px, 1fr) repeat(5, minmax(130px, 0.9fr)) minmax(170px, 1fr) minmax(280px, 1.5fr);
 }
 
-/* Seven cards are narrower: let "/ total" drop under the big number instead of being cut. */
+/* Eight cards are narrower: let "/ total" drop under the big number instead of being cut. */
 .monitor.has-gpu .mon-big {
   flex-wrap: wrap;
   row-gap: 4px;

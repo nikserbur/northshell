@@ -1,11 +1,15 @@
-import { Activity, Cpu, Gpu, HardDrive, ListOrdered, MemoryStick, Network, Server } from 'lucide-react'
+import { Activity, Cpu, Gauge, Gpu, HardDrive, Loader2, Maximize2, MemoryStick, Network, Server, Users } from 'lucide-react'
+import { useEffect, type ReactNode } from 'react'
 import { formatBytes, formatDuration, formatPercent, formatRate } from '@shared/format'
 import { gpuTotals } from '@shared/gpu'
+import { topUsers } from '@shared/procTable'
 import { useT } from '../lib/useT'
 import { levelClass } from '../lib/util'
-import { monitorKeyFor } from '../store/actions'
-import { useApp } from '../store/appStore'
+import { monitorKeyFor, scanDiskOwners } from '../store/actions'
+import { useApp, type DiskOwnersState } from '../store/appStore'
 import { registry } from '../terminal/registry'
+import { MonitorExpanded } from './monitor/MonitorExpanded'
+import { TopCard } from './monitor/TopCard'
 import { Sparkline } from './Sparkline'
 
 function Bar({ label, value, pct }: { label: string; value: string; pct: number }) {
@@ -22,13 +26,62 @@ function Bar({ label, value, pct }: { label: string; value: string; pct: number 
   )
 }
 
+/** Numbers of the user picked in the monitor, shown under a card's main figure. */
+function UserLine({ user, children }: { user: string; children: ReactNode }) {
+  return (
+    <div className="mon-user-line">
+      <Users size={11} />
+      <span className="truncate">{user}</span>
+      <b>{children}</b>
+    </div>
+  )
+}
+
+/** Under a disk's bar: who owns most of it, or a button to find out. */
+function DiskOwnersLine({ monitorKey, mount, state, picked }: { monitorKey: string; mount: string; state?: DiskOwnersState; picked: string | null }) {
+  const t = useT()
+  if (state?.running) {
+    return (
+      <span className="mon-link busy">
+        <Loader2 size={11} className="spin" /> {t('diskScanning')}
+      </span>
+    )
+  }
+  const result = state?.result
+  if (!result) {
+    return (
+      <button className="mon-link" onClick={() => void scanDiskOwners(monitorKey, mount)} title={state?.error ?? t('diskScanHint')}>
+        <Users size={11} /> {t('diskSpaceWho')}
+      </button>
+    )
+  }
+  const mine = picked ? result.users.find((u) => u.user === picked) : undefined
+  const shown = mine ? [mine] : result.users.slice(0, 2)
+  return (
+    <span className="mon-owners truncate" title={result.users.map((u) => `${u.user} ${formatBytes(u.bytes)}`).join('\n')}>
+      {shown.map((u) => `${u.user} ${formatBytes(u.bytes)}`).join(' · ')}
+    </span>
+  )
+}
+
 export function MonitorPanel() {
   const t = useT()
   const tabs = useApp((s) => s.tabs)
   const activeId = useApp((s) => s.activeId)
   const monitors = useApp((s) => s.monitors)
+  const view = useApp((s) => s.monitorView)
+  const setView = useApp((s) => s.setMonitorView)
   const tab = tabs.find((x) => x.id === activeId)
-  const history = monitors[monitorKeyFor(tab)]
+  const monitorKey = monitorKeyFor(tab)
+  const history = monitors[monitorKey]
+  const picked = useApp((s) => s.monitorUsers[monitorKey]) ?? null
+  const owners = useApp((s) => s.diskOwners[monitorKey])
+
+  // The full process list costs the server some work, so it is collected only while this panel is open.
+  useEffect(() => {
+    void window.xmt.monitor.setDetail(monitorKey, true)
+    return () => void window.xmt.monitor.setDetail(monitorKey, false)
+  }, [monitorKey])
 
   if (!history) {
     return (
@@ -47,8 +100,13 @@ export function MonitorPanel() {
   const gpu = gpuTotals(s.gpus)
   const entry = tab ? registry.get(tab.id) : undefined
   const connectedFor = tab?.connectedAt && tab.status === 'connected' ? (Date.now() - tab.connectedAt) / 1000 : 0
+  const remote = tab?.kind === 'ssh'
+  const detail = s.detail
+  const pickedUsage = picked ? detail?.users.find((u) => u.user === picked) : undefined
+  const topDiskUser = detail ? topUsers(detail.users, 'disk', 1)[0] : undefined
 
   return (
+    <>
     <section className={`monitor ${gpu ? 'has-gpu' : ''}`}>
       <div className="mon-card">
         <div className="mon-title">
@@ -88,7 +146,8 @@ export function MonitorPanel() {
             {s.cores} {t('cores')}
           </small>
         </div>
-        <Sparkline values={history.cpu} max={100} height={70} />
+        <Sparkline values={history.cpu} max={100} height={pickedUsage ? 48 : 70} />
+        {pickedUsage && <UserLine user={pickedUsage.user}>{formatPercent(pickedUsage.cpu)}</UserLine>}
       </div>
 
       <div className="mon-card">
@@ -104,6 +163,7 @@ export function MonitorPanel() {
           <Bar label={t('swap')} value={`${formatBytes(s.swapUsed)} / ${formatBytes(s.swapTotal)}`} pct={swapPct} />
         )}
         <Bar label={t('memory')} value={formatPercent(memPct)} pct={memPct} />
+        {pickedUsage && <UserLine user={pickedUsage.user}>{formatBytes(pickedUsage.mem)}</UserLine>}
       </div>
 
       {gpu && (
@@ -143,46 +203,61 @@ export function MonitorPanel() {
           <span className="rx">↓ {formatRate(s.netRx)}</span>
           <span className="tx">↑ {formatRate(s.netTx)}</span>
         </div>
-        <Sparkline values={history.rx} second={history.tx} height={84} color="var(--spark-3, var(--info))" />
+        <Sparkline values={history.rx} second={history.tx} height={pickedUsage ? 58 : 84} color="var(--spark-3, var(--info))" />
+        {pickedUsage && (
+          <UserLine user={pickedUsage.user}>
+            ↓{formatRate(pickedUsage.netRx)} ↑{formatRate(pickedUsage.netTx)}
+          </UserLine>
+        )}
+      </div>
+
+      <div className="mon-card mon-diskio">
+        <div className="mon-title">
+          <Gauge size={13} /> {t('diskSpeed')}
+          <button className="icon-btn sm mon-expand" onClick={() => setView('disks')} title={t('monExpand')}>
+            <Maximize2 size={12} />
+          </button>
+        </div>
+        <div className="net-legend">
+          <span className="rx">↓ {formatRate(s.diskRead)}</span>
+          <span className="tx">↑ {formatRate(s.diskWrite)}</span>
+        </div>
+        <Sparkline values={history.diskRead} second={history.diskWrite} height={pickedUsage || topDiskUser ? 58 : 84} color="var(--spark-3, var(--info))" />
+        {pickedUsage ? (
+          <UserLine user={pickedUsage.user}>
+            ↓{formatRate(pickedUsage.diskRead)} ↑{formatRate(pickedUsage.diskWrite)}
+          </UserLine>
+        ) : (
+          topDiskUser && (
+            <UserLine user={topDiskUser.user}>
+              ↓{formatRate(topDiskUser.diskRead)} ↑{formatRate(topDiskUser.diskWrite)}
+            </UserLine>
+          )
+        )}
       </div>
 
       <div className="mon-card" style={{ overflowY: 'auto' }}>
         <div className="mon-title">
           <HardDrive size={13} /> {t('disks')}
+          <button className="icon-btn sm mon-expand" onClick={() => setView('disks')} title={t('monExpand')}>
+            <Maximize2 size={12} />
+          </button>
         </div>
         {s.disks.length === 0 && <span className="muted">—</span>}
         {s.disks.map((d) => {
           const pct = d.total > 0 ? (d.used / d.total) * 100 : 0
           return (
-            <Bar
-              key={`${d.fs}${d.mount}`}
-              label={d.mount}
-              value={`${formatBytes(d.used)} / ${formatBytes(d.total)}`}
-              pct={pct}
-            />
+            <div key={`${d.fs}${d.mount}`} className="mon-disk-row">
+              <Bar label={d.mount} value={`${formatBytes(d.used)} / ${formatBytes(d.total)}`} pct={pct} />
+              {remote && <DiskOwnersLine monitorKey={monitorKey} mount={d.mount} state={owners?.[d.mount]} picked={picked} />}
+            </div>
           )
         })}
       </div>
 
-      <div className="mon-card">
-        <div className="mon-title">
-          <ListOrdered size={13} /> {t('processes')}
-        </div>
-        <table className="proc-table">
-          <tbody>
-            {s.processes.slice(0, 7).map((p) => (
-              <tr key={`${p.pid}-${p.name}`}>
-                <td className="pid">{p.pid}</td>
-                <td className="name" title={p.name}>
-                  {p.name}
-                </td>
-                <td className="num">{p.cpu.toFixed(1)}%</td>
-                <td className="num">{p.mem.toFixed(1)}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <TopCard monitorKey={monitorKey} snapshot={s} />
     </section>
+    {view && <MonitorExpanded monitorKey={monitorKey} history={history} remote={remote} tab={view} />}
+    </>
   )
 }

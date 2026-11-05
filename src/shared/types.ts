@@ -141,6 +141,75 @@ export interface GpuUsage {
   shared: boolean
 }
 
+/** Throughput of one block device. Rates are in bytes per second. */
+export interface DiskIoDevice {
+  name: string
+  read: number
+  write: number
+  /** Share of time the device was busy, %; null where the OS does not report it (macOS). */
+  util: number | null
+}
+
+/** One row of the full process table. Rates are in bytes per second. */
+export interface ProcessRow {
+  pid: number
+  ppid: number
+  user: string
+  /** Percent of one core, like htop: a process busy on two cores shows 200. */
+  cpu: number
+  /** Percent of RAM. */
+  mem: number
+  /** Resident memory, bytes. */
+  rss: number
+  /** Virtual memory, bytes. */
+  vsz: number
+  /** Null where `ps` cannot tell (macOS). */
+  threads: number | null
+  nice: number
+  state: string
+  /** Seconds since the process started. */
+  elapsed: number
+  name: string
+  command: string
+  diskRead: number
+  diskWrite: number
+  netRx: number
+  netTx: number
+}
+
+/** What one user costs the host right now. */
+export interface UserUsage {
+  user: string
+  procs: number
+  /** Percent of all cores together, so the users add up to the host's CPU figure. */
+  cpu: number
+  /** Resident memory of the user's processes, bytes (shared pages count once per process). */
+  mem: number
+  memPct: number
+  diskRead: number
+  diskWrite: number
+  netRx: number
+  netTx: number
+}
+
+/** Sent only while someone is looking at the monitor panel: it costs more to collect. */
+export interface MonitorDetail {
+  processes: ProcessRow[]
+  users: UserUsage[]
+  /** `all` needs root on Linux; `own` means only the login user's processes could be read; macOS has no such counters. */
+  diskIo: 'all' | 'own' | 'none'
+  net: 'all' | 'none'
+}
+
+/** Result of walking one file system to see who owns what. */
+export interface DiskOwners {
+  mount: string
+  at: number
+  users: { user: string; bytes: number }[]
+  /** Not root: folders the login user cannot read were not counted. */
+  partial: boolean
+}
+
 export interface MonitorSnapshot {
   ts: number
   hostname: string
@@ -157,10 +226,15 @@ export interface MonitorSnapshot {
   disks: DiskUsage[]
   netRx: number
   netTx: number
+  /** Disk throughput of the whole host, bytes per second. */
+  diskRead: number
+  diskWrite: number
+  diskDevices: DiskIoDevice[]
   uptime: number
   users: number
   userNames: string[]
   processes: ProcessInfo[]
+  detail?: MonitorDetail
 }
 
 export const LOCAL_MONITOR_ID = '__local__'
