@@ -6,6 +6,7 @@ import type {
   CommandLibrary,
   CommandSnippetInput,
   MenuAction,
+  DiskOwners,
   MonitorEvent,
   OpenTarget,
   PromptRequest,
@@ -87,6 +88,8 @@ const api = {
   },
   monitor: {
     setLocal: (on: boolean): Promise<void> => ipcRenderer.invoke(IPC.monitorLocal, on),
+    setDetail: (id: string, on: boolean): Promise<void> => ipcRenderer.invoke(IPC.monitorDetail, id, on),
+    diskOwners: (tabId: string, mount: string): Promise<DiskOwners> => ipcRenderer.invoke(IPC.monitorDiskOwners, tabId, mount),
     onSnapshot: (cb: (event: MonitorEvent) => void): (() => void) => listen(IPC.monitorSnapshot, cb)
   },
   prompts: {

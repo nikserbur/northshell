@@ -63,6 +63,8 @@ function loginEnv(): Record<string, string> {
 export class TerminalService {
   private backends = new Map<string, Backend>()
   private clients = new Map<string, Client>()
+  private monitors = new Map<string, RemoteMonitor>()
+  private detailTabs = new Set<string>()
   private generation = new Map<string, number>()
   /** Aborts for SSH attempts still connecting (host-key / password prompts may be open). */
   private connecting = new Map<string, () => void>()
@@ -77,6 +79,13 @@ export class TerminalService {
   private status(event: TabStatusEvent): void {
     this.batcher.flushNow(event.tabId)
     this.deps.sendStatus(event)
+  }
+
+  /** The monitor panel is open on this tab: collect the full process list. Survives a reconnect. */
+  setMonitorDetail(tabId: string, on: boolean): void {
+    if (on) this.detailTabs.add(tabId)
+    else this.detailTabs.delete(tabId)
+    this.monitors.get(tabId)?.setDetail(on)
   }
 
   clientFor(tabId: string): Client | undefined {
@@ -104,6 +113,7 @@ export class TerminalService {
     this.backends.get(tabId)?.dispose()
     this.backends.delete(tabId)
     this.clients.delete(tabId)
+    this.detailTabs.delete(tabId)
     this.batcher.discard(tabId)
   }
 
@@ -270,8 +280,9 @@ export class TerminalService {
     const settings = this.deps.settings()
     let monitor: RemoteMonitor | null = null
     if (monitoring && settings.monitorEnabled) {
-      monitor = new RemoteMonitor(client, settings.monitorInterval, (snap) => this.deps.sendMonitor(tabId, snap))
+      monitor = new RemoteMonitor(client, settings.monitorInterval, (snap) => this.deps.sendMonitor(tabId, snap), this.detailTabs.has(tabId))
       monitor.start()
+      this.monitors.set(tabId, monitor)
     }
     const follower = sftp ? new CwdFollower(client, (dir) => this.isCurrent(tabId, gen) && this.deps.sendCwd(tabId, dir)) : null
     follower?.start()
@@ -283,6 +294,7 @@ export class TerminalService {
       finished = true
       this.backends.delete(tabId)
       this.clients.delete(tabId)
+      this.monitors.delete(tabId)
       this.deps.onSshClosed(tabId)
       this.status({ tabId, status: 'closed', message, endpoint })
     }
@@ -305,6 +317,7 @@ export class TerminalService {
       dispose: () => {
         monitor?.stop()
         follower?.stop()
+        this.monitors.delete(tabId)
         this.deps.onSshClosed(tabId)
         client.end()
       }

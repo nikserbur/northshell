@@ -5,8 +5,9 @@ import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainEvent, typ
 import { z } from 'zod'
 import { HTTP_METHODS, type HttpRequestSpec } from '@shared/httpRequest'
 import { IPC } from '@shared/ipc'
-import type { PromptResponse } from '@shared/types'
+import { LOCAL_MONITOR_ID, type PromptResponse } from '@shared/types'
 import type { HttpRequests } from './http/httpRunner'
+import { scanDiskOwners } from './monitor/diskOwners'
 import type { PromptBroker } from './prompts'
 import type { SftpService } from './sftp/sftpService'
 import { parseSshConfig } from './ssh/sshConfig'
@@ -25,6 +26,7 @@ interface IpcDeps {
   prompts: PromptBroker
   http: HttpRequests
   setLocalMonitor: (on: boolean) => void
+  setLocalMonitorDetail: (on: boolean) => void
   onSettingsChanged: () => void
 }
 
@@ -194,6 +196,16 @@ export function registerIpc(deps: IpcDeps): void {
   })
 
   handle(IPC.monitorLocal, (on) => deps.setLocalMonitor(on === true))
+  handle(IPC.monitorDetail, (monitorId, on) => {
+    const target = id.parse(monitorId)
+    if (target === LOCAL_MONITOR_ID) deps.setLocalMonitorDetail(on === true)
+    else deps.terminals.setMonitorDetail(target, on === true)
+  })
+  handle(IPC.monitorDiskOwners, (tabId, mount) => {
+    const client = deps.terminals.clientFor(id.parse(tabId))
+    if (!client) throw new Error('The connection is closed')
+    return scanDiskOwners(client, absolutePath.parse(mount))
+  })
   handle(IPC.promptRespond, (res) => deps.prompts.respond(promptResponse.parse(res) as PromptResponse))
 
   handle(IPC.appOpenExternal, (url) => {

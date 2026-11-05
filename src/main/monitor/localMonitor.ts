@@ -2,9 +2,11 @@ import { execFile } from 'node:child_process'
 import { hostname, loadavg, uptime, cpus } from 'node:os'
 import { promisify } from 'node:util'
 import si from 'systeminformation'
-import type { DiskUsage, GpuUsage, MonitorSnapshot } from '@shared/types'
+import type { DiskUsage, GpuUsage, MonitorDetail, MonitorSnapshot } from '@shared/types'
+import { DiskRateTracker, parseDarwinDiskIo, type DiskCounters } from './diskIo'
 import { parseDarwinGpus } from './parseGpu'
 import { parsePs } from './parseRemote'
+import { DetailTracker, parseDarwinProcs, parseNettop } from './userStats'
 
 const run = promisify(execFile)
 
@@ -37,6 +39,35 @@ async function topProcesses(): Promise<MonitorSnapshot['processes']> {
   }
 }
 
+async function localDiskCounters(): Promise<DiskCounters[]> {
+  try {
+    const { stdout } = await run('/usr/sbin/ioreg', ['-c', 'IOBlockStorageDriver', '-r', '-w0', '-k', 'Statistics'], {
+      timeout: 3000,
+      maxBuffer: 4 * 1024 * 1024
+    })
+    return parseDarwinDiskIo(stdout.split('\n'))
+  } catch {
+    return []
+  }
+}
+
+/** Every process of this Mac with what each is doing; macOS has no per-process disk counters for `ps` to show. */
+async function localDetail(tracker: DetailTracker, cores: number, memTotal: number): Promise<MonitorDetail | undefined> {
+  try {
+    const [ps, net] = await Promise.all([
+      run('/bin/ps', ['-Aww', '-o', 'pid=,ppid=,uid=,user=,pcpu=,pmem=,rss=,vsz=,nice=,stat=,etime=,args='], { timeout: 3000, maxBuffer: 16 * 1024 * 1024 }),
+      run('/usr/bin/nettop', ['-P', '-L', '1', '-x', '-J', 'bytes_in,bytes_out'], { timeout: 3000, maxBuffer: 4 * 1024 * 1024 }).then(
+        (r) => parseNettop(r.stdout.split('\n')),
+        () => null
+      )
+    ])
+    const raw = { privileged: false, hz: 0, procs: parseDarwinProcs(ps.stdout.split('\n')), ticks: new Map<number, number>(), io: null, sockets: null, procNet: net }
+    return tracker.next(raw, Date.now(), cores, memTotal)
+  } catch {
+    return undefined
+  }
+}
+
 const IOREG_LINE_RE = /^[ |]*\+-o|"(model|PerformanceStatistics)" =/
 
 /** GPU memory of this Mac from ioreg (same parser as for macOS servers). */
@@ -60,11 +91,21 @@ export class LocalMonitor {
   private timer: NodeJS.Timeout | null = null
   private busy = false
   private osName = ''
+  private readonly disk = new DiskRateTracker()
+  private readonly detail = new DetailTracker()
+  private wantsDetail = false
 
   constructor(
     private readonly intervalSec: () => number,
     private readonly emit: (snapshot: MonitorSnapshot) => void
   ) {}
+
+  /** Asks for the full process list and per-user numbers while the monitor panel is open. */
+  setDetail(on: boolean): void {
+    if (on === this.wantsDetail) return
+    this.wantsDetail = on
+    if (on) void this.tick()
+  }
 
   start(): void {
     if (this.timer) return
@@ -85,16 +126,18 @@ export class LocalMonitor {
         const os = await si.osInfo()
         this.osName = `${os.distro} ${os.release}`.trim()
       }
-      const [load, mem, fs, net, users, processes] = await Promise.all([
+      const [load, mem, fs, net, users, processes, diskCounters] = await Promise.all([
         si.currentLoad(),
         si.mem(),
         si.fsSize(),
         si.networkStats('*'),
         si.users(),
-        topProcesses()
+        topProcesses(),
+        localDiskCounters()
       ])
       const la = loadavg()
       const gpus = await localGpus(mem.total)
+      const detail = this.wantsDetail ? await localDetail(this.detail, cpus().length, mem.total) : undefined
       this.emit({
         ts: Date.now(),
         hostname: hostname(),
@@ -110,10 +153,12 @@ export class LocalMonitor {
         disks: pickDisks(fs),
         netRx: net.reduce((a, n) => a + Math.max(0, n.rx_sec ?? 0), 0),
         netTx: net.reduce((a, n) => a + Math.max(0, n.tx_sec ?? 0), 0),
+        ...this.disk.next(diskCounters, Date.now()),
         uptime: uptime(),
         users: new Set(users.map((u) => u.user)).size,
         userNames: [...new Set(users.map((u) => u.user))].sort(),
-        processes
+        processes,
+        ...(detail ? { detail } : {})
       })
     } catch (err) {
       console.error('[monitor] local sampling failed', err)

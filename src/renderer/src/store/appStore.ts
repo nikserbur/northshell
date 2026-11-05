@@ -6,6 +6,7 @@ import type {
   AppSettings,
   CommandLibrary,
   CommandSnippet,
+  DiskOwners,
   MonitorSnapshot,
   OpenTarget,
   PromptRequest,
@@ -37,6 +38,17 @@ export interface MonitorHistory {
   vram: number[]
   rx: number[]
   tx: number[]
+  diskRead: number[]
+  diskWrite: number[]
+}
+
+export type MonitorTab = 'processes' | 'users' | 'disks'
+
+/** A walk over one file system: running, finished or failed. Kept until the tab closes. */
+export interface DiskOwnersState {
+  running: boolean
+  result?: DiskOwners
+  error?: string
 }
 
 export interface HttpHistoryItem {
@@ -106,6 +118,12 @@ interface AppState {
   sftpRevision: number
   paletteOpen: boolean
   monitorOpen: boolean
+  /** The enlarged monitor view and the tab it shows; null while it is closed. */
+  monitorView: MonitorTab | null
+  /** User picked in the monitor, per monitor key. */
+  monitorUsers: Record<string, string>
+  /** Who owns what, per monitor key and mount point. */
+  diskOwners: Record<string, Record<string, DiskOwnersState>>
   findOpen: boolean
   broadcast: boolean
   toasts: Toast[]
@@ -134,6 +152,9 @@ interface AppState {
   bumpSftp(): void
   setPalette(open: boolean): void
   setMonitorOpen(open: boolean): void
+  setMonitorView(view: MonitorTab | null): void
+  setMonitorUser(key: string, user: string | null): void
+  setDiskOwners(key: string, mount: string, state: DiskOwnersState): void
   setFindOpen(open: boolean): void
   setBroadcast(on: boolean): void
   patchHttpPanel(tabId: string, patch: Partial<HttpPanelState>): void
@@ -159,6 +180,9 @@ export const useApp = create<AppState>((set) => ({
   sftpRevision: 0,
   paletteOpen: false,
   monitorOpen: false,
+  monitorView: null,
+  monitorUsers: {},
+  diskOwners: {},
   findOpen: false,
   broadcast: false,
   toasts: [],
@@ -180,10 +204,14 @@ export const useApp = create<AppState>((set) => ({
       const { [id]: _p, ...sftpPaths } = s.sftpPaths
       const { [id]: _h, ...httpPanels } = s.httpPanels
       const { [id]: _c, ...terminalCwds } = s.terminalCwds
+      const { [id]: _u, ...monitorUsers } = s.monitorUsers
+      const { [id]: _o, ...diskOwners } = s.diskOwners
       return {
         tabs,
         activeId,
         monitors,
+        monitorUsers,
+        diskOwners,
         sftpPaths,
         httpPanels,
         terminalCwds,
@@ -212,7 +240,9 @@ export const useApp = create<AppState>((set) => ({
             mem: pushHistory(prev?.mem, memPct),
             vram: gpu ? pushHistory(prev?.vram, gpu.pct) : [],
             rx: pushHistory(prev?.rx, snapshot.netRx),
-            tx: pushHistory(prev?.tx, snapshot.netTx)
+            tx: pushHistory(prev?.tx, snapshot.netTx),
+            diskRead: pushHistory(prev?.diskRead, snapshot.diskRead),
+            diskWrite: pushHistory(prev?.diskWrite, snapshot.diskWrite)
           }
         }
       }
@@ -233,7 +263,15 @@ export const useApp = create<AppState>((set) => ({
   setEditor: (editor) => set({ editor }),
   bumpSftp: () => set((s) => ({ sftpRevision: s.sftpRevision + 1 })),
   setPalette: (paletteOpen) => set({ paletteOpen }),
-  setMonitorOpen: (monitorOpen) => set({ monitorOpen }),
+  setMonitorOpen: (monitorOpen) => set(monitorOpen ? { monitorOpen } : { monitorOpen, monitorView: null }),
+  setMonitorView: (monitorView) => set({ monitorView }),
+  setMonitorUser: (key, user) =>
+    set((s) => {
+      const { [key]: _old, ...rest } = s.monitorUsers
+      return { monitorUsers: user ? { ...rest, [key]: user } : rest }
+    }),
+  setDiskOwners: (key, mount, state) =>
+    set((s) => ({ diskOwners: { ...s.diskOwners, [key]: { ...s.diskOwners[key], [mount]: state } } })),
   setFindOpen: (findOpen) => set({ findOpen }),
   setBroadcast: (broadcast) => set({ broadcast }),
   // A request that finishes after its tab was closed must not bring the panel state back.

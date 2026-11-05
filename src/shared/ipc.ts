@@ -45,6 +45,8 @@ export const IPC = {
 
   monitorSnapshot: 'monitor:snapshot',
   monitorLocal: 'monitor:local',
+  monitorDetail: 'monitor:detail',
+  monitorDiskOwners: 'monitor:disk-owners',
 
   promptRequest: 'prompt:request',
   promptRespond: 'prompt:respond',

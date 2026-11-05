@@ -5,7 +5,7 @@ import { useT } from '../lib/useT'
 interface ModalProps {
   title: ReactNode
   icon?: ReactNode
-  size?: 'narrow' | 'normal' | 'wide'
+  size?: 'narrow' | 'normal' | 'wide' | 'full'
   onClose: () => void
   footer?: ReactNode
   children: ReactNode

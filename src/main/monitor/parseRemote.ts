@@ -1,6 +1,8 @@
 import type { DiskUsage, GpuUsage, MonitorSnapshot, ProcessInfo } from '@shared/types'
+import { DiskRateTracker, parseDarwinDiskIo, parseDiskstats, type DiskCounters } from './diskIo'
 import { parseDarwinMemory, parseNetstat, parseTopCpu } from './parseDarwin'
 import { parseAmdSysfs, parseDarwinGpus, parseNvidiaSmi } from './parseGpu'
+import { DetailTracker, parseRawDetail, type RawDetail } from './userStats'
 
 export interface CpuTimes {
   idle: number
@@ -23,14 +25,18 @@ export interface RawSample {
   gpus: GpuUsage[]
   netRx: number
   netTx: number
+  diskCounters: DiskCounters[]
   disks: DiskUsage[]
   users: number
   userNames: string[]
   processes: ProcessInfo[]
+  /** Full process list and counters; only while the monitor panel asks for them. */
+  detail: RawDetail | null
 }
 
 const BEGIN = '@@XMT_BEGIN\n'
-const END = '@@XMT_END'
+/** Whole line only: another monitor's script can show up in the process list with the markers in its text. */
+const END = '\n@@XMT_END'
 const PSEUDO_FS = new Set(['tmpfs', 'devtmpfs', 'overlay', 'squashfs', 'udev', 'none', 'shm', 'efivarfs', 'run', 'devfs', 'map'])
 const APFS_DATA = '/System/Volumes/Data'
 const PSEUDO_MOUNTS = ['/proc', '/sys', '/dev', '/run', '/snap', '/boot/efi']
@@ -154,16 +160,20 @@ export function parseRemoteBlock(block: string): RawSample {
     gpus,
     netRx: net.rx,
     netTx: net.tx,
+    diskCounters: s.has('diskio') ? parseDarwinDiskIo(get('diskio')) : parseDiskstats(get('diskstats')),
     disks: parseDf(get('df')),
     users: userNames.length,
     userNames,
-    processes: parsePs(get('ps'))
+    processes: parsePs(get('ps')),
+    detail: parseRawDetail(s)
   }
 }
 
 /** Turns cumulative counters from consecutive samples into rates and usage percentages. */
 export class StatsTracker {
   private prev: { cpu: CpuTimes | null; rx: number; tx: number; ts: number } | null = null
+  private readonly disk = new DiskRateTracker()
+  private readonly detail = new DetailTracker()
 
   next(raw: RawSample, ts: number): MonitorSnapshot {
     let cpu = 0
@@ -206,10 +216,12 @@ export class StatsTracker {
       disks: raw.disks,
       netRx,
       netTx,
+      ...this.disk.next(raw.diskCounters, ts),
       uptime: raw.uptime,
       users: raw.users,
       userNames: raw.userNames,
-      processes: raw.processes
+      processes: raw.processes,
+      ...(raw.detail ? { detail: this.detail.next(raw.detail, ts, raw.cores, raw.memTotal) } : {})
     }
   }
 }
@@ -226,12 +238,13 @@ export class BlockSplitter {
     for (;;) {
       const start = this.buffer.indexOf(BEGIN)
       if (start < 0) break
-      const end = this.buffer.indexOf(END, start + BEGIN.length)
+      // The newline that ends BEGIN may also be the one that starts END: an empty block.
+      const end = this.buffer.indexOf(END, start + BEGIN.length - 1)
       if (end < 0) {
         this.buffer = this.buffer.slice(start)
         break
       }
-      blocks.push(this.buffer.slice(start + BEGIN.length, end))
+      blocks.push(this.buffer.slice(start + BEGIN.length, end + 1))
       this.buffer = this.buffer.slice(end + END.length)
     }
     if (this.buffer.length > this.maxBuffer) {
