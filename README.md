@@ -26,7 +26,7 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - Local shell and SSH sessions in tabs, powered by xterm.js with GPU rendering, true colour and full Unicode.
 - Find in output, clickable links, copy on select and right-click paste (optional).
 - Broadcast input to every connected tab (MultiExec), one-click reconnect.
-- `Ctrl+A` selects the command you are typing, as on Windows: `⌫` deletes it, typing replaces it; press `Ctrl+A` again to jump to the line start as usual (can be turned off in Settings).
+- Edit the command line like text: `⌘A` selects the command you are typing, `⌫` deletes it and typing replaces it (`⌘A` again selects all output); a part selected with the mouse is deleted or replaced the same way. `Ctrl+A` still jumps to the line start.
 - Optional MobaXterm-style output highlighting (IP addresses, URLs, `error` / `warning` / `ok` keywords) and a session info box on connect.
 
 **Sessions and authentication**
@@ -53,6 +53,8 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 
 <img src="docs/screenshots/http-environment.png" width="720" alt="New HTTP environment dialog: base URL, token, curl headers and the SSH / HTTP switch" />
 
+<img src="docs/screenshots/http-request.png" width="720" alt="HTTP request panel: GET /orders with a {{limit}} parameter, the extra header and the highlighted JSON response next to the terminal" />
+
 **SFTP browser and editor**
 - File panel next to the terminal with breadcrumbs, sorting by name, size or date, and a resizable width.
 - The panel follows `cd` in the terminal of the same connection (toggle in the path bar); the terminal button there runs `cd` to the folder you are browsing. Nothing is typed into your shell to make this work.
@@ -66,6 +68,8 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - Mac memory is counted like Activity Monitor's “Memory Used” (app + wired + compressed), the same for this Mac and for macOS servers.
 - Video memory: NVIDIA (`nvidia-smi`) and AMD (`amdgpu`) on Linux, and Mac GPUs. Apple Silicon shares memory with the CPU, so the GPU's share is macOS's estimate (⅔ of RAM up to 36 GB, ¾ above, or `iogpu.wired_limit_mb`), marked with “≈”.
 - No agent to install: statistics are read over the same SSH connection (Linux and macOS servers).
+
+<img src="docs/screenshots/monitor-gpu.png" width="720" alt="Monitor panel with the GPU card next to CPU and memory: Apple M1 Pro using 318 MB of about 11 GB of unified memory, and the same figure in the status bar" />
 
 **Appearance**
 - Six themes: Dark, Light, System, Visual Studio, MobaXterm and Windows 95.
