@@ -297,6 +297,7 @@ export function SettingsDialog() {
         </div>
         <div className="muted mono">v{version}</div>
       </div>
+      <Switch on={settings.checkUpdates} onChange={(v) => update({ checkUpdates: v })} label={t('checkUpdates')} hint={t('checkUpdatesHint')} />
       <p style={{ margin: 0, color: 'var(--text-1)' }}>{t('aboutText')}</p>
       <p style={{ margin: 0, color: 'var(--text-2)', fontSize: 12 }}>{t('dataStored')}</p>
     </div>

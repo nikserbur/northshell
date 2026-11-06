@@ -365,6 +365,9 @@ export function bindIpc(): () => void {
   void api()
     .app.info()
     .then((info) => (appVersion = info.version))
+  void api()
+    .update.get()
+    .then((status) => useApp.getState().setUpdate(status))
   const offs = [
     api().term.onData((tabId, data) => registry.write(tabId, data)),
     api().term.onStatus((ev) => {
@@ -387,6 +390,7 @@ export function bindIpc(): () => void {
     api().term.onCwd((tabId, dir) => useApp.getState().setTerminalCwd(tabId, dir)),
     api().commands.onChanged((library) => useApp.getState().setLibrary(library)),
     api().monitor.onSnapshot(({ id, snapshot }) => useApp.getState().pushMonitor(id, snapshot)),
+    api().update.onStatus((status) => useApp.getState().setUpdate(status)),
     api().sftp.onTransfer((info) => {
       const store = useApp.getState()
       store.upsertTransfer(info)

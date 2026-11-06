@@ -19,6 +19,7 @@ import { httpHistoryItemSchema, httpRequestSpecSchema, httpVarsSchema, importedC
 import type { SessionStore } from './store/sessionStore'
 import type { SettingsStore } from './store/settingsStore'
 import type { TerminalService } from './terminals'
+import type { Updater } from './updater'
 
 interface IpcDeps {
   window: () => BrowserWindow | null
@@ -31,6 +32,7 @@ interface IpcDeps {
   http: HttpRequests
   httpStore: HttpStore
   cookiesDir: string
+  updater: Updater
   setLocalMonitor: (on: boolean) => void
   setLocalMonitorDetail: (on: boolean) => void
   onSettingsChanged: () => void
@@ -254,6 +256,9 @@ export function registerIpc(deps: IpcDeps): void {
     await deps.sftp.download(id.parse(tabId), z.array(remotePath).max(1000).parse(paths), target)
     return target
   })
+
+  handle(IPC.updateGet, () => deps.updater.current())
+  handle(IPC.updateInstall, () => deps.updater.install())
 
   handle(IPC.monitorLocal, (on) => deps.setLocalMonitor(on === true))
   handle(IPC.monitorDetail, (monitorId, on) => {

@@ -9,6 +9,7 @@ import type {
   MenuAction,
   DiskOwners,
   MonitorEvent,
+  UpdateStatus,
   OpenTarget,
   PromptRequest,
   PromptResponse,
@@ -99,6 +100,11 @@ const api = {
     cookies: (sessionId: string): Promise<CookieEntry[]> => ipcRenderer.invoke(IPC.httpCookies, sessionId),
     removeCookies: (sessionId: string, cookie?: { domain: string; path: string; name: string }): Promise<CookieEntry[]> =>
       ipcRenderer.invoke(IPC.httpRemoveCookies, sessionId, cookie)
+  },
+  update: {
+    get: (): Promise<UpdateStatus> => ipcRenderer.invoke(IPC.updateGet),
+    install: (): Promise<void> => ipcRenderer.invoke(IPC.updateInstall),
+    onStatus: (cb: (status: UpdateStatus) => void): (() => void) => listen(IPC.updateStatus, cb)
   },
   monitor: {
     setLocal: (on: boolean): Promise<void> => ipcRenderer.invoke(IPC.monitorLocal, on),

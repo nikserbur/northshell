@@ -1310,3 +1310,56 @@ textarea.input {
 .tab-kind.closed {
   opacity: 0.45;
 }
+
+/* ───────────── New version ───────────── */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  min-height: 36px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  font-size: 12px;
+  color: var(--text-0);
+}
+
+.update-banner > svg {
+  flex: none;
+  color: var(--accent-fg);
+}
+
+.update-banner.failed {
+  border-bottom-color: color-mix(in oklab, var(--danger) 40%, transparent);
+  background: color-mix(in oklab, var(--danger) 10%, transparent);
+}
+
+.update-banner.failed > svg {
+  color: var(--danger);
+}
+
+.update-banner .icon-btn {
+  margin-left: auto;
+}
+
+.update-track {
+  flex: 0 1 180px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.update-track i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  transition: transform var(--normal) var(--ease);
+}
+
+.update-percent {
+  font: 11px var(--font-mono);
+  color: var(--text-1);
+}

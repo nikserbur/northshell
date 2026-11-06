@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, nativeTheme, safeStorage, session, shell } from 'electron'
+import { app, BrowserWindow, nativeTheme, net, safeStorage, session, shell } from 'electron'
 import { APP_NAME, LEGACY_APP_NAMES } from '@shared/brand'
 import { IPC } from '@shared/ipc'
 import { LOCAL_MONITOR_ID, type UiTheme } from '@shared/types'
@@ -9,6 +9,7 @@ import { HttpRequests } from './http/httpRunner'
 import { sweepStaleHttpShells } from './http/httpShell'
 import { buildMenu } from './menu'
 import { LocalMonitor } from './monitor/localMonitor'
+import { Updater } from './updater'
 import { HttpStore } from './store/httpStore'
 import { PromptBroker } from './prompts'
 import { SftpService } from './sftp/sftpService'
@@ -136,6 +137,20 @@ void app.whenReady().then(() => {
     }
   }
 
+  const updater = new Updater({
+    currentVersion: app.getVersion(),
+    execPath: process.execPath,
+    fetch: (input, init) => net.fetch(input as string, init),
+    enabled: () => settings.get().checkUpdates,
+    emit: (status) => send(IPC.updateStatus, status),
+    relaunch: () => {
+      app.relaunch()
+      app.quit()
+    }
+  })
+  // A development run has no bundle of its own to replace.
+  if (app.isPackaged) updater.start()
+
   registerIpc({
     window: getWindow,
     sessions,
@@ -147,6 +162,7 @@ void app.whenReady().then(() => {
     http,
     httpStore,
     cookiesDir,
+    updater,
     setLocalMonitor,
     setLocalMonitorDetail: (on) => {
       localDetail = on

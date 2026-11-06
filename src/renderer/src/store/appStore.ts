@@ -15,7 +15,8 @@ import type {
   RemoteFile,
   SessionConfig,
   TabStatus,
-  TransferInfo
+  TransferInfo,
+  UpdateStatus
 } from '@shared/types'
 
 export interface Tab {
@@ -147,6 +148,7 @@ interface AppState {
   httpPanels: Record<string, HttpPanelState>
   /** Collections, variables and history of all HTTP environments, as stored by the main process. */
   httpWorkspace: HttpWorkspace
+  update: UpdateStatus
 
   init(settings: AppSettings, sessions: SessionConfig[]): void
   setSettings(settings: AppSettings): void
@@ -176,6 +178,7 @@ interface AppState {
   setBroadcast(on: boolean): void
   patchHttpPanel(tabId: string, patch: Partial<HttpPanelState>): void
   setHttpWorkspace(workspace: HttpWorkspace): void
+  setUpdate(update: UpdateStatus): void
   toast(toast: Omit<Toast, 'id'>): void
   dismissToast(id: string): void
 }
@@ -205,6 +208,7 @@ export const useApp = create<AppState>((set) => ({
   toasts: [],
   httpPanels: {},
   httpWorkspace: emptyWorkspace(),
+  update: { state: 'idle' },
 
   init: (settings, sessions) => set({ settings, sessions, ready: true }),
   setSettings: (settings) => set({ settings }),
@@ -299,6 +303,7 @@ export const useApp = create<AppState>((set) => ({
         : s
     ),
   setHttpWorkspace: (httpWorkspace) => set({ httpWorkspace }),
+  setUpdate: (update) => set({ update }),
   toast: (toast) => {
     const id = crypto.randomUUID()
     set((s) => ({ toasts: [...s.toasts.slice(-3), { ...toast, id }] }))

@@ -93,6 +93,8 @@ export interface AppSettings {
   httpPanelOpen: boolean
   /** The request panel covers the terminal, as a full workspace. */
   httpPanelExpanded: boolean
+  /** Look for a new version on GitHub and offer to install it. */
+  checkUpdates: boolean
 }
 
 export interface QuickTarget {
@@ -238,6 +240,16 @@ export interface MonitorSnapshot {
   processes: ProcessInfo[]
   detail?: MonitorDetail
 }
+
+/** A new version of the app: found, on its way in, or failed. */
+export type UpdateStatus =
+  | { state: 'idle' }
+  /** `canInstall` is false where the app cannot replace itself (run from a disk image, say): the page opens instead. */
+  | { state: 'available'; version: string; url: string; canInstall: boolean }
+  /** Share of the download, 0–100; null while the size is unknown. */
+  | { state: 'downloading'; version: string; url: string; progress: number | null }
+  | { state: 'installing'; version: string; url: string }
+  | { state: 'error'; version: string; url: string; message: string; canInstall: boolean }
 
 export const LOCAL_MONITOR_ID = '__local__'
 

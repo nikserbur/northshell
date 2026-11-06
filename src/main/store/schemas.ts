@@ -93,7 +93,8 @@ export const settingsShape = z.object({
     sidebarOpen: z.boolean(),
     commandsPanelOpen: z.boolean(),
     httpPanelOpen: z.boolean(),
-    httpPanelExpanded: z.boolean()
+    httpPanelExpanded: z.boolean(),
+    checkUpdates: z.boolean()
 })
 
 export const settingsPatchSchema = settingsShape.partial().strict()

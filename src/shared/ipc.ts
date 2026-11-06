@@ -55,6 +55,10 @@ export const IPC = {
   httpCookies: 'http:cookies',
   httpRemoveCookies: 'http:remove-cookies',
 
+  updateStatus: 'update:status',
+  updateGet: 'update:get',
+  updateInstall: 'update:install',
+
   monitorSnapshot: 'monitor:snapshot',
   monitorLocal: 'monitor:local',
   monitorDetail: 'monitor:detail',
