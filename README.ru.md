@@ -7,7 +7,7 @@
 Бесплатная альтернатива MobaXterm для macOS с открытым кодом: SSH-клиент и терминал с SFTP-браузером, встроенным редактором файлов на сервере и мониторингом нагрузки в одном окне.
 
 [![Release](https://img.shields.io/github/v/release/nikserbur/northshell?label=release&color=3d8bff)](https://github.com/nikserbur/northshell/releases/latest)
-[![Platform](https://img.shields.io/badge/macOS-13%2B%20·%20Apple%20Silicon-555)](#требования)
+[![Platform](https://img.shields.io/badge/macOS-13%2B%20·%20Apple%20Silicon-555)](#установка)
 [![License](https://img.shields.io/badge/license-MIT-555)](LICENSE)
 
 **[Установка](#установка)** · [Возможности](#возможности) · [Скриншоты](#скриншоты) · [Начало работы](#начало-работы) · [История версий](#история-версий) · [Сборка](#сборка-из-исходников) · [English](README.md)
