@@ -10,7 +10,7 @@ A free, open-source MobaXterm alternative for macOS: an SSH client and terminal 
 [![Platform](https://img.shields.io/badge/macOS-13%2B%20·%20Apple%20Silicon-555)](#requirements)
 [![License](https://img.shields.io/badge/license-MIT-555)](LICENSE)
 
-[Download](#installation) · [Features](#features) · [Screenshots](#screenshots) · [Getting started](#getting-started) · [Version history](#version-history) · [Build from source](#building-from-source) · [Русский](README.ru.md)
+**[Installation](#installation)** · [Features](#features) · [Screenshots](#screenshots) · [Getting started](#getting-started) · [Version history](#version-history) · [Build from source](#building-from-source) · [Русский](README.ru.md)
 
 <img src="docs/screenshots/main.png" alt="Northshell main window: sessions, SFTP browser, terminal, command library and server monitor" />
 
@@ -42,8 +42,6 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - Placeholders: `{{id}}` or `{{limit:20}}` ask for a value before the command runs.
 - Stored in a plain `commands.json` you can edit by hand — changes appear in the app immediately; import and export to share a library between Macs or with your team.
 
-<img src="docs/screenshots/command-library.png" width="720" alt="Command library panel next to the terminal: commands private to the connection and shared commands, with two of them already run" />
-
 **HTTP client (like Postman and Insomnia, on top of curl)**
 - A connection type for APIs with no SSH at all: a request workspace that fills the window (`⇧⌘R` shows or hides it, one button puts the terminal back beside it). The terminal stays ready for hand-written `curl`: `$BASE_URL` and `$TOKEN` (token kept in the Keychain) are set, and your default headers are added to every `curl`.
 - **Requests:** query parameters, headers and form fields as tables with an on/off switch per row (or as plain text); **auth** — Bearer, Basic, API key in a header or the query; **body** — JSON, XML, text, urlencoded form, multipart form with files, a whole file, GraphQL with variables; a timeout, `-k` and redirects per request.
@@ -53,14 +51,6 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - **Checks and runs:** status, time, size, header and JSON-path checks for each request, no scripting needed; run a whole folder in order and get a report.
 - **Cookies** are kept per environment like in a browser, and you can view and delete them. **Code** for curl, JavaScript fetch, Python requests and HTTPie; paste a curl command (e.g. “Copy as cURL” from dev tools) into the address field and the form fills itself.
 - The environment's headers and token go only to its own host; other hosts and redirects to them don't get them.
-
-<img src="docs/screenshots/http-workspace.png" width="720" alt="HTTP workspace: a collection of saved requests on the left, GET /orders with its query parameters, and the formatted JSON response with 3 of 3 checks passed" />
-
-<img src="docs/screenshots/http-timing.png" width="720" alt="HTTP workspace with environment variables on the left and the time breakdown of a response: DNS, connect, TLS, waiting and download" />
-
-<img src="docs/screenshots/http-request.png" width="720" alt="The request panel beside the terminal: the same request and response in a narrower column" />
-
-<img src="docs/screenshots/http-environment.png" width="720" alt="New HTTP environment dialog: base URL, token, curl headers and the SSH / HTTP switch" />
 
 **SFTP browser and editor**
 - File panel next to the terminal with breadcrumbs, sorting by name, size or date, and a resizable width.
@@ -81,89 +71,92 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - Video memory: NVIDIA (`nvidia-smi`) and AMD (`amdgpu`) on Linux, and Mac GPUs. Apple Silicon shares memory with the CPU, so the GPU's share is macOS's estimate (⅔ of RAM up to 36 GB, ¾ above, or `iogpu.wired_limit_mb`), marked with “≈”.
 - No agent to install: statistics are read over the same SSH connection (Linux and macOS servers).
 
-<img src="docs/screenshots/monitor-users.png" width="720" alt="Monitor panel of a server: disk I/O card with read and write speed, volumes with their biggest owners, and users ranked by disk load" />
-
-| Who is loading the disk and who takes up the space | All processes, sorted like in htop |
-|---|---|
-| ![Disks view: speed per device, users by current reads and writes, users by space on each volume](docs/screenshots/monitor-disks.png) | ![Processes view: PID, user, CPU, memory, disk and network for every process, sorted by disk reads](docs/screenshots/monitor-processes.png) |
-
-<img src="docs/screenshots/monitor-gpu.png" width="720" alt="Monitor panel with the GPU card next to CPU and memory, and the same figure in the status bar" />
-
 **Appearance**
 - Six themes: Dark, Light, System, Visual Studio, MobaXterm and Windows 95.
 - Nine terminal colour schemes, adjustable font, cursor and scrollback; English and Russian UI.
 
-## Screenshots
-
-| Start screen and recent sessions | Remote file editor |
-|---|---|
-| ![Start screen](docs/screenshots/welcome.png) | ![Editor](docs/screenshots/editor.png) |
-| **File actions in the SFTP browser** | **Recursive search on the server** |
-| ![SFTP menu](docs/screenshots/sftp-menu.png) | ![Search](docs/screenshots/sftp-search.png) |
-| **New session** | **Host key verification** |
-| ![New session](docs/screenshots/session-editor.png) | ![Host key](docs/screenshots/hostkey.png) |
-| **Command palette** | **Settings** |
-| ![Palette](docs/screenshots/palette.png) | ![Settings](docs/screenshots/settings.png) |
-| **MobaXterm theme with output highlighting** | **Visual Studio theme** |
-| ![MobaXterm theme](docs/screenshots/theme-moba.png) | ![Visual Studio theme](docs/screenshots/theme-vs.png) |
-| **Windows 95 theme** | **Light theme** |
-| ![Windows 95 theme](docs/screenshots/theme-retro.png) | ![Light theme](docs/screenshots/light.png) |
-
-Screenshots were taken against a demo project; host and user names are placeholders.
-
 ## Installation
 
-### Requirements
+You need macOS 13 Ventura or later and a Mac with Apple Silicon (M1, M2, M3 or M4).
 
-- macOS 13 Ventura or later
-- A Mac with Apple Silicon (M1, M2, M3 or M4)
+### One command
 
-### Download
+Open Terminal (`⌘Space`, type “Terminal”), paste this and press Return:
 
-| File | Size |
-|---|---|
-| [`Northshell-<version>-arm64.dmg`](https://github.com/nikserbur/northshell/releases/latest) | ~112 MB |
+```bash
+curl -fsSL https://raw.githubusercontent.com/nikserbur/northshell/main/scripts/install.sh | bash
+```
 
-Get the DMG from the **Assets** list of the [latest release](https://github.com/nikserbur/northshell/releases/latest). To check the download, compare its SHA-256 with [SHA256SUMS.txt](https://github.com/nikserbur/northshell/releases/latest/download/SHA256SUMS.txt) from the same release:
+It downloads the latest version, checks its SHA-256, puts Northshell into Applications and starts it. macOS doesn't block the app, because that warning only applies to files downloaded through a browser. You can [read the script](scripts/install.sh) first.
+
+### With the DMG
+
+1. Download `Northshell-<version>-arm64.dmg` (about 112 MB) from the **Assets** list of the [latest release](https://github.com/nikserbur/northshell/releases/latest).
+2. Open it and drag **Northshell** onto the **Applications** folder.
+3. Eject the disk image, then allow the [first launch](#first-launch).
+
+<img src="docs/screenshots/install-dmg.png" width="560" alt="Drag Northshell into Applications" />
+
+To check the download, compare its SHA-256 with [SHA256SUMS.txt](https://github.com/nikserbur/northshell/releases/latest/download/SHA256SUMS.txt) from the same release:
 
 ```bash
 shasum -a 256 ~/Downloads/Northshell-*-arm64.dmg
 ```
 
-### Install
-
-1. Open the downloaded `Northshell-<version>-arm64.dmg`.
-2. Drag **Northshell** onto the **Applications** folder in the window that appears.
-3. Eject the disk image (drag it to the Trash or press `⌘E` in Finder).
-4. Start Northshell from Applications, Launchpad or Spotlight.
-
-<img src="docs/screenshots/install-dmg.png" width="560" alt="Drag Northshell into Applications" />
-
 ### First launch
 
-Northshell is not signed with a paid Apple Developer certificate, so macOS blocks the first launch of the downloaded copy. Allow it once in one of these ways:
+Northshell isn't signed with a paid Apple Developer certificate, so macOS blocks a copy downloaded through a browser. This is the command that lifts the block; you only need it once:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Northshell.app
+```
+
+Without Terminal:
 
 - **macOS 15 Sequoia and later:** open Northshell, close the warning, then go to **System Settings → Privacy & Security**, scroll down to the message about Northshell and click **Open Anyway**. Confirm with your password.
 - **macOS 13–14:** in Finder, Control-click (or right-click) Northshell in Applications, choose **Open**, then click **Open** in the dialog.
-- **Any version, from Terminal:**
-
-  ```bash
-  xattr -dr com.apple.quarantine /Applications/Northshell.app
-  ```
-
-After that the app opens normally.
 
 When you save a password for the first time, macOS asks whether Northshell may use its Keychain item **Northshell Safe Storage**. Choose **Always Allow**. After installing a new version macOS may ask again.
 
 ### Updating
 
-Download the new DMG and drag Northshell into Applications again, replacing the old copy. Sessions, settings and known hosts are kept.
+From 1.6.1 on, updates need no Terminal. Northshell tells you when a new version is out, and **Update and restart** downloads it, checks its SHA-256, replaces the app and starts the new version. Sessions and settings are kept, and it asks first if tabs are open.
+
+It checks at launch and once a day, talking only to github.com; you can turn this off in **Settings → About**. To get to 1.6.1 from an older version, run the [one command](#one-command) once.
 
 ### Uninstalling
 
 1. Quit Northshell and move it from Applications to the Trash.
 2. Remove its data folder: `rm -rf ~/Library/Application\ Support/Northshell`
 3. Optionally delete **Northshell Safe Storage** in Keychain Access.
+
+## Screenshots
+
+| HTTP workspace: collections, request and response | Variables and where the time went |
+|---|---|
+| ![HTTP workspace: collections, request and response](docs/screenshots/http-workspace.png) | ![Variables and where the time went](docs/screenshots/http-timing.png) |
+| **Monitor: who is loading the server** | **Disks: who reads, writes and takes up the space** |
+| ![Monitor: who is loading the server](docs/screenshots/monitor-users.png) | ![Disks: who reads, writes and takes up the space](docs/screenshots/monitor-disks.png) |
+| **All processes, sorted like in htop** | **GPU memory next to CPU and RAM** |
+| ![All processes, sorted like in htop](docs/screenshots/monitor-processes.png) | ![GPU memory next to CPU and RAM](docs/screenshots/monitor-gpu.png) |
+| **Request panel beside the terminal** | **New HTTP environment** |
+| ![Request panel beside the terminal](docs/screenshots/http-request.png) | ![New HTTP environment](docs/screenshots/http-environment.png) |
+| **Command library** | **Start screen and recent sessions** |
+| ![Command library](docs/screenshots/command-library.png) | ![Start screen and recent sessions](docs/screenshots/welcome.png) |
+| **Remote file editor** | **File actions in the SFTP browser** |
+| ![Remote file editor](docs/screenshots/editor.png) | ![File actions in the SFTP browser](docs/screenshots/sftp-menu.png) |
+| **Recursive search on the server** | **New session** |
+| ![Recursive search on the server](docs/screenshots/sftp-search.png) | ![New session](docs/screenshots/session-editor.png) |
+| **Host key verification** | **Command palette** |
+| ![Host key verification](docs/screenshots/hostkey.png) | ![Command palette](docs/screenshots/palette.png) |
+| **Settings** | **MobaXterm theme with output highlighting** |
+| ![Settings](docs/screenshots/settings.png) | ![MobaXterm theme with output highlighting](docs/screenshots/theme-moba.png) |
+| **Visual Studio theme** | **Windows 95 theme** |
+| ![Visual Studio theme](docs/screenshots/theme-vs.png) | ![Windows 95 theme](docs/screenshots/theme-retro.png) |
+| **Light theme** |  |
+| ![Light theme](docs/screenshots/light.png) |  |
+
+Screenshots were taken against a demo project; host and user names are placeholders.
 
 ## Getting started
 
@@ -206,6 +199,7 @@ Download the new DMG and drag Northshell into Applications again, replacing the 
 - HTTP environments write their curl headers to a private temporary folder (owner-only permissions) that is deleted when the tab closes.
 - The environment's token never reaches the interface or curl's command line, and the request log masks credentials. Collections, variables and cookies are stored owner-only but **not encrypted**, so keep secrets in `$TOKEN`; a token typed into a form is saved as typed.
 - A collection file or a pasted curl command cannot choose a local file to send: the file has to be picked by hand.
+- Updates come only from this repository's GitHub releases over HTTPS and must match the release's SHA-256 and the app's identifier and version, or the installed app stays as it is.
 
 App data lives in `~/Library/Application Support/Northshell/` (`sessions.json`, `commands.json`, `settings.json`, `known_hosts.json`, `http-workspace.json`, `http-cookies/`).
 
@@ -258,38 +252,89 @@ The app is not notarized by Apple. See [First launch](#first-launch) for the one
 
 ## Version history
 
-### 1.6.0 — 2026-11-05
+<details open>
+<summary><b>1.6.1</b> · Nov 6, 2026 · One-command install and updates inside the app</summary>
+
+- **Install with one command:** it downloads the latest version, checks it, puts it into Applications and starts it, and macOS doesn't block it.
+- **Updates inside the app:** a new version offers itself, and one button installs it and restarts, with no Terminal and no “Open Anyway”. You can turn the check off in Settings.
+
+[Release page](https://github.com/nikserbur/northshell/releases/tag/v1.6.1)
+
+</details>
+
+<details>
+<summary><b>1.6.0</b> · Nov 5, 2026 · Disk speed, who loads the server, a full HTTP client</summary>
+
 - **Disk speed:** reads and writes per host and device, with a graph in the monitor panel.
 - **Who is loading the host:** top users by CPU, RAM, disk and network, and a user picker in the monitor.
 - **Enlarged monitor:** an htop-like process table with sorting, search and a tree; a table of users; a disk page with current reads and writes per user and space per user on each volume.
 - **HTTP client on a par with Postman and Insomnia:** a full-window workspace, collections with folders, import from Postman and Insomnia, export to Postman, persistent history and variables, auth settings, every body type including multipart and GraphQL, cookies, checks and value capture, folder runs, a time breakdown, curl's log, HTML and image preview, saving responses, code for other tools.
+- **Command line:** `⌘A` selects the command you are typing (again: all output); `⌫` deletes it and typing replaces it, and a part selected with the mouse works the same way. `Ctrl+A` jumps to the line start again.
 
-### 1.5.2 — 2026-11-05
-- `⌘A` selects the command you are typing (again: all output); `⌫` deletes it and typing replaces it, and a part selected with the mouse works the same way. `Ctrl+A` jumps to the line start again.
+[Release page](https://github.com/nikserbur/northshell/releases/tag/v1.6.0)
 
-### 1.5.1 — 2026-11-03
-- HTTP request panel (`⇧⌘R`): a form instead of hand-written curl, with the response next to the terminal; a pasted curl command fills the form.
-- Video memory in the status bar and the monitor: NVIDIA and AMD on Linux, the GPU of a Mac.
-- The SFTP panel follows `cd` in the terminal.
-- Fixed: macOS servers showed about 1.5 GB less memory than Activity Monitor.
+</details>
 
-### 1.4.0 — 2026-10-16
-- Command library (`⇧⌘L`): shared and per-connection commands, `{{placeholders}}`, a plain `commands.json`, import and export.
-- HTTP environments: a local terminal with `$BASE_URL`, `$TOKEN` from the Keychain and default curl headers.
+<details>
+<summary><b>1.5.1</b> · Nov 3, 2026 · HTTP request panel, GPU memory, SFTP follows cd</summary>
 
-### 1.3.0 — 2026-10-12
-- Termora is now Northshell; sessions and settings move over on first launch.
+- **HTTP request panel** (`⇧⌘R`): a form instead of hand-written curl, with the response next to the terminal; a pasted curl command fills the form.
+- **Video memory** in the status bar and the monitor: NVIDIA and AMD on Linux, the GPU of a Mac.
+- **SFTP** follows `cd` in the terminal.
+- **Fixed:** macOS servers showed about 1.5 GB less memory than Activity Monitor.
+
+[Release page](https://github.com/nikserbur/northshell/releases/tag/v1.5.1)
+
+</details>
+
+<details>
+<summary><b>1.4.0</b> · Oct 16, 2026 · Command library and HTTP environments</summary>
+
+- **Command library** (`⇧⌘L`): shared and per-connection commands, `{{placeholders}}`, a plain `commands.json`, import and export.
+- **HTTP environments:** a local terminal with `$BASE_URL`, `$TOKEN` from the Keychain and default curl headers.
+
+[Release page](https://github.com/nikserbur/northshell/releases/tag/v1.4.0)
+
+</details>
+
+<details>
+<summary><b>1.3.0</b> · Oct 12, 2026 · Termora is now Northshell</summary>
+
+- New name; sessions and settings move over on first launch.
 - Installation guide, FAQ, comparison with other Mac SSH clients.
 
-### 1.2.0 — 2026-10-12
+[Release page](https://github.com/nikserbur/northshell/releases/tag/v1.3.0)
+
+</details>
+
+<details>
+<summary><b>1.2.0</b> · Oct 12, 2026 · MobaXterm theme</summary>
+
 - MobaXterm theme, output highlighting and an info box on connect.
 - A status bar that never clips, and icon-only buttons in narrow panels.
 
-### 1.1.0 — 2026-10-12
-- Visual Studio and Windows 95 themes, a theme picker with previews, hover tooltips with shortcuts, resizable side panels.
+[Release page](https://github.com/nikserbur/northshell/releases/tag/v1.2.0)
 
-### 1.0.0 — 2026-10-12
-- First release: saved sessions, password, key, agent and 2FA login, Keychain secrets, host key checks, terminal tabs with MultiExec, an SFTP browser with a built-in editor, server monitoring with no agent.
+</details>
+
+<details>
+<summary><b>1.1.0</b> · Oct 12, 2026 · Visual Studio and Windows 95 themes</summary>
+
+- Two new themes, a theme picker with previews, hover tooltips with shortcuts, resizable side panels.
+
+[Release page](https://github.com/nikserbur/northshell/releases/tag/v1.1.0)
+
+</details>
+
+<details>
+<summary><b>1.0.0</b> · Oct 12, 2026 · First release</summary>
+
+- Saved sessions; password, key, agent and 2FA login; Keychain secrets and host key checks.
+- Terminal tabs with MultiExec, an SFTP browser with a built-in editor, server monitoring with no agent.
+
+[Release page](https://github.com/nikserbur/northshell/releases/tag/v1.0.0)
+
+</details>
 
 ## Building from source
 

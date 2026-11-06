@@ -17,6 +17,7 @@ import { TabBar } from './components/TabBar'
 import { TerminalArea } from './components/TerminalArea'
 import { Toasts } from './components/Toasts'
 import { TooltipLayer } from './components/TooltipLayer'
+import { UpdateBanner } from './components/UpdateBanner'
 import { activateRelative, bindIpc, closeTab, openLocal, setPanelOpen } from './store/actions'
 import { useApp } from './store/appStore'
 import { registry } from './terminal/registry'
@@ -189,6 +190,7 @@ export function App() {
       {settings.sidebarOpen && <Sidebar onCollapse={toggleSidebar} />}
       <main className="main">
         <TabBar sidebarOpen={settings.sidebarOpen} onShowSidebar={toggleSidebar} />
+        <UpdateBanner />
         <div className="workspace">
           {showSftp && active && <SftpPanel key={active.id} tab={active} />}
           {settings.httpPanelOpen && active && httpSession && (

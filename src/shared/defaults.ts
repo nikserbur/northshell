@@ -30,7 +30,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   sidebarOpen: true,
   commandsPanelOpen: false,
   httpPanelOpen: true,
-  httpPanelExpanded: true
+  httpPanelExpanded: true,
+  checkUpdates: true
 }
 
 export const SESSION_COLORS = ['#5eead4', '#a78bfa', '#f472b6', '#fbbf24', '#60a5fa', '#f87171', '#4ade80', '#94a3b8']
