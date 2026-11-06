@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { access, constants, mkdir, mkdtemp, open, readdir, rename, rm } from 'node:fs/promises'
+import { access, constants, mkdir, mkdtemp, open, readdir, rename } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -59,6 +59,14 @@ export async function replaceableBundle(execPath: string): Promise<string | null
   }
 }
 
+/**
+ * Deletes an app bundle or a folder holding one. Not with `fs.rm`: inside Electron `fs` treats an `.asar`
+ * file as a folder, so it cannot delete the bundle's `app.asar` and fails half way through.
+ */
+function removeTree(path: string): Promise<unknown> {
+  return run('/bin/rm', ['-rf', '--', path])
+}
+
 async function plistValue(bundle: string, key: string): Promise<string> {
   const { stdout } = await run('/usr/libexec/PlistBuddy', ['-c', `Print :${key}`, join(bundle, 'Contents', 'Info.plist')])
   return stdout.trim()
@@ -66,8 +74,7 @@ async function plistValue(bundle: string, key: string): Promise<string> {
 
 /**
  * Puts the new bundle in place of the old one; if that fails half way, the old one goes back. The old one
- * stays on disk: the running app still needs its files, and deleting them takes it down before it can
- * restart. The new version removes it on launch.
+ * stays on disk because the running app still needs its files; the new version removes it on launch.
  */
 export async function swapBundles(current: string, fresh: string): Promise<void> {
   const old = join(dirname(current), `.${basename(current)}.old-${process.pid}`)
@@ -80,12 +87,13 @@ export async function swapBundles(current: string, fresh: string): Promise<void>
   }
 }
 
-/** Removes what the previous update left beside the running bundle. */
+/** Removes what earlier updates left beside the running bundle; one that won't go doesn't stop the rest. */
 export async function sweepOldBundles(bundle: string): Promise<void> {
   const dir = dirname(bundle)
   const prefix = `.${basename(bundle)}.old-`
   for (const name of await readdir(dir)) {
-    if (name.startsWith(prefix) && /^\d+$/.test(name.slice(prefix.length))) await rm(join(dir, name), { recursive: true, force: true })
+    if (!name.startsWith(prefix) || !/^\d+$/.test(name.slice(prefix.length))) continue
+    await removeTree(join(dir, name)).catch((err: unknown) => console.error('[update] could not remove the previous version', name, err))
   }
 }
 
@@ -97,7 +105,7 @@ export async function installFromDmg(dmg: string, bundle: string, version: strin
   // Beside the old bundle, so the final rename stays on one volume; the dot keeps it out of Launchpad meanwhile.
   const fresh = join(dirname(bundle), `.${APP_NAME}-${version}.app`)
   try {
-    await rm(fresh, { recursive: true, force: true })
+    await removeTree(fresh)
     await run('/usr/bin/ditto', [join(mount, `${APP_NAME}.app`), fresh])
     const id = await plistValue(fresh, 'CFBundleIdentifier')
     const got = await plistValue(fresh, 'CFBundleShortVersionString')
@@ -105,7 +113,8 @@ export async function installFromDmg(dmg: string, bundle: string, version: strin
     await run('/usr/bin/xattr', ['-dr', 'com.apple.quarantine', fresh]).catch(() => undefined)
     await swapBundles(bundle, fresh)
   } catch (err) {
-    await rm(fresh, { recursive: true, force: true })
+    // The reason the install failed is what matters, whatever happens to this cleanup.
+    await removeTree(fresh).catch((cleanup: unknown) => console.error('[update] could not remove the partial copy', cleanup))
     throw err
   } finally {
     await run('/usr/bin/hdiutil', ['detach', mount, '-force']).catch((err: unknown) => console.error('[update] could not detach the image', err))
@@ -231,7 +240,7 @@ export class Updater {
       console.error('[update] install failed', err)
       this.set({ state: 'error', version, url, message: err instanceof Error ? err.message : String(err), canInstall: true })
     } finally {
-      await rm(workDir, { recursive: true, force: true })
+      await removeTree(workDir).catch((err: unknown) => console.error('[update] could not remove the temporary files', err))
     }
   }
 }

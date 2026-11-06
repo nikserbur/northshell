@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterAll, describe, expect, it, vi } from 'vitest'
@@ -103,6 +103,29 @@ describe('swapBundles', () => {
     const bundle = fakeBundle(freshDir(), '1.0.0')
     await expect(swapBundles(bundle, join(root, 'missing.app'))).rejects.toThrow()
     expect(versionOf(bundle)).toBe('1.0.0')
+  })
+})
+
+describe('sweepOldBundles with a copy that will not go', () => {
+  it('still removes the others, and removes a real bundle with an asar in it', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const dir = freshDir()
+    const bundle = fakeBundle(dir, '1.0.0')
+    const stuck = join(dir, '.Northshell.app.old-1', 'locked')
+    mkdirSync(stuck, { recursive: true })
+    writeFileSync(join(stuck, 'file'), 'x')
+    chmodSync(stuck, 0o500)
+    const real = join(dir, '.Northshell.app.old-2', 'Contents', 'Resources')
+    mkdirSync(real, { recursive: true })
+    writeFileSync(join(real, 'app.asar'), 'not a folder')
+    try {
+      await sweepOldBundles(bundle)
+      expect(readdirSync(dir).sort()).toEqual(['.Northshell.app.old-1', 'Northshell.app'])
+      expect(error).toHaveBeenCalled()
+    } finally {
+      chmodSync(stuck, 0o700)
+      error.mockRestore()
+    }
   })
 })
 
