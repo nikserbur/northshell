@@ -6,10 +6,12 @@ import { z } from 'zod'
 import { parseCollectionFile, toPostmanCollection } from '@shared/httpImport'
 import type { SavedRequest } from '@shared/httpWorkspace'
 import { IPC } from '@shared/ipc'
+import { MAX_SIGNAL_TARGETS, PROCESS_SIGNALS } from '@shared/signals'
 import { LOCAL_MONITOR_ID, type PromptResponse } from '@shared/types'
 import { cookieJarPath, listCookies, removeCookies } from './http/cookieJar'
 import type { HttpRequests } from './http/httpRunner'
 import { scanDiskOwners } from './monitor/diskOwners'
+import { signalLocal, signalRemote } from './monitor/signals'
 import type { PromptBroker } from './prompts'
 import type { SftpService } from './sftp/sftpService'
 import { parseSshConfig } from './ssh/sshConfig'
@@ -265,6 +267,15 @@ export function registerIpc(deps: IpcDeps): void {
     const target = id.parse(monitorId)
     if (target === LOCAL_MONITOR_ID) deps.setLocalMonitorDetail(on === true)
     else deps.terminals.setMonitorDetail(target, on === true)
+  })
+  handle(IPC.monitorSignal, (monitorId, pids, signal, sudo) => {
+    const target = id.parse(monitorId)
+    const list = z.array(z.number().int()).min(1).max(MAX_SIGNAL_TARGETS).parse(pids)
+    const sig = z.enum(PROCESS_SIGNALS).parse(signal)
+    if (target === LOCAL_MONITOR_ID) return signalLocal(list, sig)
+    const client = deps.terminals.clientFor(target)
+    if (!client) throw new Error('The connection is closed')
+    return signalRemote(client, list, sig, sudo === true)
   })
   handle(IPC.monitorDiskOwners, (tabId, mount) => {
     const client = deps.terminals.clientFor(id.parse(tabId))

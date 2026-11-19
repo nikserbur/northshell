@@ -426,7 +426,11 @@ await shot('monitor-disks')
 
 await page.click('.mon-toolbar [role=tab]:nth-child(1)')
 await page.waitForSelector('.modal.full .sort-table tbody tr')
-await page.click('.modal.full .sort-table th:nth-child(7) button')
+await page.click('.modal.full .sort-table th:nth-child(8) button')
+// The two heaviest readers ticked, to show the signal bar.
+await page.click('.modal.full .sort-table tbody tr:nth-child(1) .proc-check')
+await page.click('.modal.full .sort-table tbody tr:nth-child(2) .proc-check')
+await page.waitForSelector('.kill-bar')
 await page.waitForTimeout(300)
 await shot('monitor-processes')
 

@@ -1,6 +1,7 @@
 // End-to-end smoke test against the built app (run `npm run build` first).
 // Optional SSH flow: set XMT_E2E_SSH_HOST, XMT_E2E_SSH_PORT, XMT_E2E_SSH_USER, XMT_E2E_SSH_KEY.
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { homedir } from 'node:os'
 import { tmpdir } from 'node:os'
 import { createServer } from 'node:http'
@@ -176,9 +177,10 @@ await step('monitor: disk speed and who is loading the host, enlarged', async ()
   await page.waitForSelector('.modal.full .sort-table tbody tr', { timeout: 5000 })
   await page.click('.mon-toolbar [role=tab]:nth-child(1)')
   await page.waitForSelector('.modal.full .sort-table tbody tr', { timeout: 5000 })
-  const byCpu = await page.textContent('.modal.full .sort-table tbody tr td:nth-child(1)')
-  await page.click('.modal.full .sort-table th:nth-child(1) button')
-  await page.waitForFunction((was) => document.querySelector('.modal.full .sort-table tbody tr td')?.textContent !== was, byCpu, { timeout: 3000 })
+  // The first column holds the checkboxes, so PID is the second.
+  const byCpu = await page.textContent('.modal.full .sort-table tbody tr td:nth-child(2)')
+  await page.click('.modal.full .sort-table th:nth-child(2) button')
+  await page.waitForFunction((was) => document.querySelector('.modal.full .sort-table tbody tr td:nth-child(2)')?.textContent !== was, byCpu, { timeout: 3000 })
   await page.fill('.mon-search input', 'launchd')
   await page.waitForFunction(() => document.querySelector('.modal.full .mon-foot')?.textContent?.match(/\d+/)?.[0] !== '500', null, { timeout: 3000 })
   await page.click('.modal.full .sort-table tbody tr')
@@ -188,6 +190,53 @@ await step('monitor: disk speed and who is loading the host, enlarged', async ()
   await shot('03b-monitor-expanded')
   await page.keyboard.press('Escape')
   await page.waitForSelector('.modal.full', { state: 'detached', timeout: 3000 })
+})
+
+await step('monitor: select processes and end them in bulk', async () => {
+  // Processes of our own with an argument nothing else has, so nothing else can be hit.
+  // (A copy of /bin/sleep won't do: macOS kills a system binary copied out of /bin on start.)
+  const name = `northshell-victim-${process.pid}`
+  const victims = [0, 1, 2].map(() => spawn(process.execPath, ['-e', 'setInterval(() => {}, 1e9)', name], { stdio: 'ignore' }))
+  const ended = victims.map((v) => new Promise((resolve) => v.on('exit', (_code, signal) => resolve(signal))))
+  try {
+    await page.click('.mon-top .mon-expand')
+    await page.waitForSelector('.modal.full', { timeout: 3000 })
+    await page.click('.mon-toolbar [role=tab]:nth-child(1)')
+    await page.fill('.mon-search input', name)
+    await page.waitForFunction((n) => document.querySelectorAll('.modal.full .sort-table tbody tr:not(.sort-expansion)').length === n, 3, { timeout: 15000 })
+
+    // One by context menu: KILL for a single row, then the others in one go with TERM.
+    const first = await page.textContent('.modal.full .sort-table tbody tr:nth-child(1) td:nth-child(2)')
+    await page.click('.modal.full .sort-table tbody tr:nth-child(1)', { button: 'right' })
+    await page.click('.ctx-menu button:has-text("Kill"), .ctx-menu button:has-text("Убить")')
+    await page.waitForSelector('.kill-bar.confirm', { timeout: 3000 })
+    const asked = await page.textContent('.kill-bar.confirm .kill-names')
+    if (!asked?.includes(`(${first?.trim()},`) || asked.includes(',  ')) throw new Error(`confirmation names the wrong process: ${asked}`)
+    await page.click('.kill-bar.confirm .btn.danger')
+    const signals = await Promise.race([Promise.any(ended), new Promise((r) => setTimeout(() => r('timeout'), 10000))])
+    if (signals !== 'SIGKILL') throw new Error(`the single process got ${signals}`)
+
+    await page.waitForFunction(() => document.querySelectorAll('.modal.full .sort-table tbody tr:not(.sort-expansion)').length === 2, null, { timeout: 15000 })
+    await page.click('.modal.full .sort-table thead .proc-check')
+    await page.waitForSelector('.kill-bar:not(.confirm) .kill-count', { timeout: 3000 })
+    const count = await page.textContent('.kill-bar .kill-count b')
+    if (!count?.includes('2')) throw new Error(`selection shows ${count}`)
+    await shot('03c-monitor-kill-selected')
+    await page.click('.kill-bar .btn:has-text("Terminate"), .kill-bar .btn:has-text("Завершить")')
+    await page.waitForSelector('.kill-bar.confirm', { timeout: 3000 })
+    await shot('03d-monitor-kill-confirm')
+    await page.click('.kill-bar.confirm .btn.danger')
+    const all = await Promise.race([Promise.all(ended), new Promise((r) => setTimeout(() => r('timeout'), 10000))])
+    if (!Array.isArray(all) || all.filter((s) => s === 'SIGTERM').length !== 2) throw new Error(`bulk TERM gave ${JSON.stringify(all)}`)
+    await page.waitForSelector('.mon-foot .kill-result.ok:has-text("2")', { timeout: 5000 })
+    await shot('03e-monitor-kill-done')
+    await page.keyboard.press('Escape')
+    await page.waitForSelector('.modal.full', { state: 'detached', timeout: 3000 })
+  } finally {
+    for (const v of victims) v.kill('SIGKILL')
+    // A failure above must not leave the enlarged view over the next steps.
+    if (await page.$('.modal.full')) await page.keyboard.press('Escape')
+  }
   await page.click('.sb-toggle')
 })
 
@@ -529,6 +578,30 @@ if (ssh.host && ssh.key && ssh.user) {
     await page.click('.sb-toggle')
     await page.waitForTimeout(2500)
     await shot('08-monitor-remote')
+    await page.click('.sb-toggle')
+  })
+
+  await step('remote monitor: end a process on the server, with the sudo switch on offer', async () => {
+    const name = `northshell-remote-victim-${process.pid}`
+    const victim = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1e9)', name], { stdio: 'ignore' })
+    const ended = new Promise((resolve) => victim.on('exit', (_code, signal) => resolve(signal)))
+    try {
+      await page.click('.sb-toggle')
+      await page.click('.mon-top .mon-expand')
+      await page.waitForSelector('.modal.full', { timeout: 3000 })
+      await page.click('.mon-toolbar [role=tab]:nth-child(1)')
+      await page.fill('.mon-search input', name)
+      await page.waitForFunction(() => document.querySelectorAll('.modal.full .sort-table tbody tr:not(.sort-expansion)').length === 1, null, { timeout: 20000 })
+      await page.click('.modal.full .sort-table tbody .proc-check')
+      await page.waitForSelector('.kill-bar label:has-text("sudo")', { timeout: 3000 })
+      await page.click('.kill-bar .btn:has-text("Terminate"), .kill-bar .btn:has-text("Завершить")')
+      await page.click('.kill-bar.confirm .btn.danger')
+      const signal = await Promise.race([ended, new Promise((r) => setTimeout(() => r('timeout'), 10000))])
+      if (signal !== 'SIGTERM') throw new Error(`the server-side process got ${signal}`)
+    } finally {
+      victim.kill('SIGKILL')
+      if (await page.$('.modal.full')) await page.keyboard.press('Escape')
+    }
     await page.click('.sb-toggle')
   })
 

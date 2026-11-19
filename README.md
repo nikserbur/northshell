@@ -64,6 +64,7 @@ MobaXterm is a popular all-in-one SSH tool, but it only runs on Windows. Northsh
 - Monitor panel (`⇧⌘M`) with CPU, memory, video memory, network and **disk read/write speed** graphs, all disks and swap.
 - **Who is loading the host:** top users by CPU, RAM, disk or network right in the panel, and a user picker that shows that user's share on every card and their processes.
 - **Enlarge** (the ⤢ button) for an htop-like view: every process with sorting by any column, search, a process tree and the full command line; a table of users; and a disk page with the speed per device, who is reading and writing now, and **who takes up the space** on each volume.
+- **End processes, many at once:** tick them, shift-click a range, tick everything a search found, or right-click a row to pick all processes of its user or the process with its children. Then **Terminate** (SIGTERM) or **Kill** (SIGKILL), or send INT, HUP, STOP or CONT. A confirmation names every process first. On a server you can send through `sudo -n` when you aren't root; the result says which processes were not allowed or had already ended.
 - Disk speed comes from kernel counters on every update (every 3 seconds by default), so short bursts aren't lost and it costs next to nothing. Details per process are collected only while the panel is open.
 - Space per user needs a walk over the files, so it runs when you press the button, at the lowest CPU and disk priority, and the result is kept with its time.
 - What's visible depends on the server: on Linux, reads and writes of other users' processes are visible to root only (the kernel's rule), so connect as root to see everyone; traffic per user is counted from TCP connections (`ss`), so UDP isn't in it; macOS has no per-process disk counters, so only its total speed shows.
@@ -137,8 +138,8 @@ It checks at launch and once a day, talking only to github.com; you can turn thi
 | ![HTTP workspace: collections, request and response](docs/screenshots/http-workspace.png) | ![Variables and where the time went](docs/screenshots/http-timing.png) |
 | **Monitor: who is loading the server** | **Disks: who reads, writes and takes up the space** |
 | ![Monitor: who is loading the server](docs/screenshots/monitor-users.png) | ![Disks: who reads, writes and takes up the space](docs/screenshots/monitor-disks.png) |
-| **All processes, sorted like in htop** | **GPU memory next to CPU and RAM** |
-| ![All processes, sorted like in htop](docs/screenshots/monitor-processes.png) | ![GPU memory next to CPU and RAM](docs/screenshots/monitor-gpu.png) |
+| **All processes: sort, select and end them like in htop** | **GPU memory next to CPU and RAM** |
+| ![All processes: sort, select and end them like in htop](docs/screenshots/monitor-processes.png) | ![GPU memory next to CPU and RAM](docs/screenshots/monitor-gpu.png) |
 | **Request panel beside the terminal** | **New HTTP environment** |
 | ![Request panel beside the terminal](docs/screenshots/http-request.png) | ![New HTTP environment](docs/screenshots/http-environment.png) |
 | **Command library** | **Start screen and recent sessions** |
@@ -253,6 +254,15 @@ The app is not notarized by Apple. See [First launch](#first-launch) for the one
 ## Version history
 
 <details open>
+<summary><b>1.7.0</b> · Nov 19, 2026 · End processes from the monitor, many at once</summary>
+
+- **End processes:** in the enlarged monitor, tick processes or a whole range with Shift, or select everything a search found, all processes of a user or a process with its children, then send SIGTERM, SIGKILL, INT, HUP, STOP or CONT. A confirmation names every process first.
+- **On servers** the signal goes over the same SSH connection; when you aren't root, turn on `sudo` (it works where sudo needs no password). The result says which processes were not allowed or had already ended.
+- **Fixed:** after an update from inside the app, the previous copy is removed on the next launch instead of being left in Applications.
+
+</details>
+
+<details>
 <summary><b>1.6.1</b> · Nov 6, 2026 · One-command install and updates inside the app</summary>
 
 - **Install with one command:** it downloads the latest version, checks it, puts it into Applications and starts it, and macOS doesn't block it.
