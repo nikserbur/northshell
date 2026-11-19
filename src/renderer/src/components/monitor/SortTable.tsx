@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp } from 'lucide-react'
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, type MouseEvent, type ReactNode } from 'react'
 import { firstDirection, type SortState } from '@shared/procTable'
 
 export interface Column<T, K extends string> {
@@ -7,6 +7,8 @@ export interface Column<T, K extends string> {
   sort?: K
   id: string
   label: string
+  /** Shown in the header instead of the label, e.g. a select-all checkbox. */
+  header?: ReactNode
   title?: string
   num?: boolean
   /** Column width in pixels; a column without one takes the remaining space. */
@@ -21,7 +23,9 @@ interface Props<T, K extends string> {
   sort: SortState<K>
   onSort: (sort: SortState<K>) => void
   onRowClick?: (row: T) => void
+  onRowContextMenu?: (row: T, event: MouseEvent) => void
   isSelected?: (row: T) => boolean
+  isChecked?: (row: T) => boolean
   /** Extra full-width row under a row, e.g. its details. */
   renderExpansion?: (row: T) => ReactNode
 }
@@ -37,7 +41,18 @@ export function MeterCell({ text, pct }: { text: string; pct: number }) {
 }
 
 /** Table with a sticky header whose columns sort on click: a second click flips the direction. */
-export function SortTable<T, K extends string>({ columns, rows, rowKey, sort, onSort, onRowClick, isSelected, renderExpansion }: Props<T, K>) {
+export function SortTable<T, K extends string>({
+  columns,
+  rows,
+  rowKey,
+  sort,
+  onSort,
+  onRowClick,
+  onRowContextMenu,
+  isSelected,
+  isChecked,
+  renderExpansion
+}: Props<T, K>) {
   const toggle = (key: K): void => onSort(sort.key === key ? { key, desc: !sort.desc } : { key, desc: firstDirection(key) })
   return (
     <table className="sort-table">
@@ -53,14 +68,14 @@ export function SortTable<T, K extends string>({ columns, rows, rowKey, sort, on
             const active = key !== undefined && sort.key === key
             return (
               <th key={c.id} className={c.num ? 'num' : ''} title={c.title} aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : undefined}>
-                {key === undefined ? (
+                {c.header ?? (key === undefined ? (
                   c.label
                 ) : (
                   <button className={active ? 'on' : ''} onClick={() => toggle(key)}>
                     {c.label}
                     {active && (sort.desc ? <ArrowDown size={11} /> : <ArrowUp size={11} />)}
                   </button>
-                )}
+                ))}
               </th>
             )
           })}
@@ -71,7 +86,11 @@ export function SortTable<T, K extends string>({ columns, rows, rowKey, sort, on
           const expansion = renderExpansion?.(row)
           return (
             <Fragment key={rowKey(row)}>
-              <tr className={`${onRowClick ? 'clickable' : ''} ${isSelected?.(row) ? 'selected' : ''}`} onClick={onRowClick ? () => onRowClick(row) : undefined}>
+              <tr
+                className={`${onRowClick ? 'clickable' : ''} ${isSelected?.(row) ? 'selected' : ''} ${isChecked?.(row) ? 'checked' : ''}`}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
+              >
                 {columns.map((c) => (
                   <td key={c.id} className={c.num ? 'num' : ''}>
                     {c.cell(row)}

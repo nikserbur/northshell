@@ -149,7 +149,17 @@ export function MonitorExpanded({ monitorKey, history, remote, tab }: Props) {
             )}
           </>
         ) : (
-          <ProcessesView detail={detail} user={selected} query={query} tree={tree} cores={s.cores} sort={procSort} onSort={setProcSort} />
+          <ProcessesView
+            monitorKey={monitorKey}
+            remote={remote}
+            detail={detail}
+            user={selected}
+            query={query}
+            tree={tree}
+            cores={s.cores}
+            sort={procSort}
+            onSort={setProcSort}
+          />
         )}
       </div>
     </Modal>

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { HttpRequestSpec, HttpResponseInfo } from '@shared/httpRequest'
+import type { ProcessSignal, SignalResult } from '@shared/signals'
 import type { CookieEntry, HttpHistoryItem, HttpWorkspace, SavedRequestInput } from '@shared/httpWorkspace'
 import { IPC } from '@shared/ipc'
 import type {
@@ -110,6 +111,8 @@ const api = {
     setLocal: (on: boolean): Promise<void> => ipcRenderer.invoke(IPC.monitorLocal, on),
     setDetail: (id: string, on: boolean): Promise<void> => ipcRenderer.invoke(IPC.monitorDetail, id, on),
     diskOwners: (tabId: string, mount: string): Promise<DiskOwners> => ipcRenderer.invoke(IPC.monitorDiskOwners, tabId, mount),
+    signal: (id: string, pids: number[], signal: ProcessSignal, sudo: boolean): Promise<SignalResult[]> =>
+      ipcRenderer.invoke(IPC.monitorSignal, id, pids, signal, sudo),
     onSnapshot: (cb: (event: MonitorEvent) => void): (() => void) => listen(IPC.monitorSnapshot, cb)
   },
   prompts: {

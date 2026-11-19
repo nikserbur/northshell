@@ -364,6 +364,108 @@
   background: var(--accent-soft);
 }
 
+.sort-table tr.checked td {
+  background: color-mix(in oklab, var(--danger) 9%, transparent);
+}
+
+.sort-table tr.checked:hover td {
+  background: color-mix(in oklab, var(--danger) 13%, transparent);
+}
+
+.proc-check {
+  display: block;
+  margin: 0 auto;
+  accent-color: var(--danger);
+  cursor: pointer;
+}
+
+.mon-foot-hint {
+  margin-left: auto;
+  color: var(--text-3);
+}
+
+/* Signals for the selected processes */
+.kill-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-height: 44px;
+  padding: 7px 20px;
+  border-top: 1px solid color-mix(in oklab, var(--danger) 35%, transparent);
+  background: color-mix(in oklab, var(--danger) 7%, var(--surface-1));
+  font-size: 12px;
+  animation: slide-up var(--normal) var(--ease);
+}
+
+.kill-bar.confirm {
+  background: color-mix(in oklab, var(--danger) 13%, var(--surface-1));
+}
+
+.kill-count,
+.kill-what {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.kill-what {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kill-names {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 11.5px var(--font-mono);
+  color: var(--text-1);
+}
+
+.kill-bar .dim {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.kill-result {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 550;
+}
+
+.kill-count .kill-result {
+  margin-left: 0;
+}
+
+.kill-result.ok {
+  color: var(--ok);
+}
+
+.kill-result.mixed {
+  color: var(--warn);
+}
+
+.kill-result.bad {
+  color: var(--danger);
+}
+
+.kill-other {
+  width: auto;
+  max-width: 220px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.kill-bar .btn {
+  flex: none;
+}
+
 .sort-table.compact {
   font-size: 11.5px;
 }
